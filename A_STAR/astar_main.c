@@ -4,39 +4,53 @@
 #include "bl_hash.h"
 #include "bl_heap.h"
 
-struct mapSquare {
+#define MAX(a,b) \
+    ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+    _a > _b ? _a : _b; })
+    
+ #define MIN(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a < _b ? _a : _b; })
+
+struct map_square {
     int terrain;
 };
 
 struct field {
     int xLen;
     int yLen;
-    struct mapSquare **grid;
+    struct map_square **grid;
 };
 
 struct coord {
-    unsigned x;
-    unsigned y;
+    int x;
+    int y;
 };
 
 struct astar_node {
     struct coord cur;
     struct coord prev;
+    int weightFromStart;
+    int weightTotal;
 };
 
 struct field *init_map(int xLen, int yLen);
 struct field *init_map_file(FILE *file, struct coord *start, struct coord *end);
 struct field *init_map_rand(struct coord *start, struct coord *end);
+struct astar_node *astar_path(struct field *map, struct coord start, struct coord end);
+int astar_priority(const void *a, const void *b);
+int grid_heuristic(struct coord cur, struct coord end);
 
 int main(int argc, char **argv)
 {
+    srand(time(NULL));
     FILE *inFile = NULL;
     if(argc > 1) {
         inFile = fopen(argv[1], "r");
     }
     
-    srand(time(NULL));
-    int xLen = 0, yLen = 0;
     struct coord start = {0,0}, end = {0,0};
     struct field *map = NULL;
     if(inFile) {
@@ -47,7 +61,37 @@ int main(int argc, char **argv)
         map = init_map_rand(&start, &end);
     }
     
+    struct astar_node *endNode = NULL;
+    endNode = astar_path(map, start, end);
+    
     return 0;
+}
+
+
+struct astar_node *astar_path(struct field *map, struct coord start, struct coord end)
+{
+    bl_heap *openList = bl_heap_new(10, astar_priority);    //priority queue of expanded nodes
+    bl_hashtable *nodeList = bl_hashtable_new(100);         //table of all expanded nodes
+    
+    // init start node
+    struct astar_node *node = malloc(sizeof(struct astar_node));
+    node->cur = start;
+    node->prev = (struct coord){-1,-1};
+    node->weightFromStart = 0;
+    node->weightTotal = grid_heuristic(node->cur, end);
+    bl_heap_push(openList, node);
+    bl_hashtable_insert(nodeList, "TODO: coordinates go here", node); //TODO: fix hashtable so it takes the length of the key in bytes instead of a string
+    
+}
+
+int grid_heuristic(struct coord cur, struct coord end)
+{
+    // TODO: put weight and diagWeight in with terrain so the map can have different weighted tiles
+    int dx = abs(cur.x - end.x);
+    int dy = abs(cur.y - end.y);
+    int weight = 10;
+    int diagWeight = 14;
+    return weight * (dx + dy) + (diagWeight - 2 * weight) * MIN(dx, dy);
 }
 
 struct field *init_map(int xLen, int yLen)
@@ -55,9 +99,9 @@ struct field *init_map(int xLen, int yLen)
     struct field *map = malloc(sizeof(struct field));
     map->xLen = xLen;
     map->yLen = yLen;
-    map->grid = calloc(xLen, sizeof(struct mapSquare *));
+    map->grid = calloc(xLen, sizeof(struct map_quare *));
     for(int i = 0; i < xLen; i++) {
-        map->grid[i] = calloc(yLen, sizeof(struct mapSquare));
+        map->grid[i] = calloc(yLen, sizeof(struct map_square));
     }
     return map;
 }
@@ -73,10 +117,11 @@ struct field *init_map_file(FILE *file, struct coord *start, struct coord *end)
     fgets(buf, 1024, file);
     yLen = atoi(buf);
     map = init_map(xLen, yLen);
+    // fill grid from file
     for(int y = yLen - 1; y >= 0; y--) {
         fgets(buf, 1024, file);
         for(int x = 0; x < xLen; x++) {
-            if(buf[x] == 'W') {
+            if(buf[x] == 'W') { // "wall" or impassable
                 map->grid[x][y].terrain = 1;
             } else if(buf[x] == 'S') {
                 start->x = x;
@@ -108,4 +153,11 @@ struct field *init_map_rand(struct coord *start, struct coord *end)
         }
     }
     return map;
+}
+
+int astar_priority(const void *a, const void *b)
+{
+    struct astar_node *node1 = (struct astar_node *)a;
+    struct astar_node *node2 = (struct astar_node *)b;
+    return node2->weightTotal - node1->weightTotal; // lower weight is better 
 }
