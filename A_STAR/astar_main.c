@@ -31,7 +31,7 @@ struct coord {
 
 struct astar_node {
     struct coord cur;
-    struct coord prev;
+    struct astar_node *prev;
     int weightFromStart;
     int weightTotal;
 };
@@ -64,24 +64,88 @@ int main(int argc, char **argv)
     struct astar_node *endNode = NULL;
     endNode = astar_path(map, start, end);
     
+    if(endNode) {
+        printf("found something\n");
+    } else {
+        printf("found nothing\n");
+    }
+    
+    while(endNode) {
+        map->grid[endNode->cur.x][endNode->cur.y].terrain = 2;
+        endNode= endNode->prev;
+    }
+    
+    for(int y = map->yLen - 1; y >= 0; y--) {
+        printf("%2d ", y);
+        for(int x = 0; x < map->xLen; x++) {
+            switch(map->grid[x][y].terrain) {
+                case 0:
+                    printf("%c%c%c", 177, 177, 177);
+                    break;
+                case 1:
+                    printf("%c%c%c", 178, 178, 178);
+                    break;
+                case 2:
+                    printf(" X ");
+                    break;
+            }
+        }
+        printf("\n");
+    }
+    printf("  ");
+    for(int x = 0; x < map->xLen; x++) {
+        printf("%3d", x);
+    }
+    printf("\nstart = {%d,%d}\nend = {%d,%d}\n", start.x, start.y, end.x, end.y);
+    
     return 0;
 }
 
 
 struct astar_node *astar_path(struct field *map, struct coord start, struct coord end)
 {
+    struct coord adjacentOffset[8] = {{-1,-1}, {-1, 0}, {-1, 1}, {0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}};
+    int adjacentWeight[8] = {14, 10, 14, 10, 14, 10, 14, 10};
     bl_heap *openList = bl_heap_new(10, astar_priority);    //priority queue of expanded nodes
     bl_hashtable *nodeList = bl_hashtable_new(100);         //table of all expanded nodes
     
     // init start node
     struct astar_node *node = malloc(sizeof(struct astar_node));
     node->cur = start;
-    node->prev = (struct coord){-1,-1};
+    node->prev = NULL;
     node->weightFromStart = 0;
     node->weightTotal = grid_heuristic(node->cur, end);
     bl_heap_push(openList, node);
-    bl_hashtable_insert(nodeList, "TODO: coordinates go here", node); //TODO: fix hashtable so it takes the length of the key in bytes instead of a string
+    bl_hashtable_insert(nodeList, &node->cur, sizeof(struct coord), node);
     
+    while(bl_heap_count(openList) > 0) {
+        node = bl_heap_pop(openList);
+        if(node->cur.x == end.x && node->cur.y == end.y) {
+            return node;
+        }
+        //TODO: go through every adjacent node
+        for(int i = 0; i < 8; i++) {
+            int chX = node->cur.x + adjacentOffset[i].x;
+            int chY = node->cur.y + adjacentOffset[i].y;
+            if((chX >= 0 && chX < map->xLen) && (chY >= 0 && chY < map->yLen)) {
+                // coordinates are valid
+                struct coord tmp = {chX, chY};
+                if(bl_hashtable_get(nodeList, &tmp, sizeof(struct coord))) {
+                    continue;
+                }
+                struct astar_node *adjNode = malloc(sizeof(struct astar_node));
+                adjNode->cur = (struct coord){chX, chY};
+                adjNode->prev = node;
+                adjNode->weightFromStart = node->weightFromStart + adjacentWeight[i];
+                adjNode->weightTotal = adjNode->weightFromStart + grid_heuristic(adjNode->cur, end);
+                if(map->grid[chX][chY].terrain != 1) {// not a "wall"
+                    bl_heap_push(openList, adjNode);
+                }
+                bl_hashtable_insert(nodeList, &adjNode->cur, sizeof(struct coord), adjNode);
+            }
+        }
+    }
+    return NULL;
 }
 
 int grid_heuristic(struct coord cur, struct coord end)
@@ -147,11 +211,13 @@ struct field *init_map_rand(struct coord *start, struct coord *end)
     // fill grid with random walls
     for(int x = 0; x < xLen; x++) {
         for(int y = 0; y < yLen; y++) {
-            if(rand() % 100 < 20) { // 20% chance of wall
+            if(rand() % 100 < 40){ // 20% chance of wall
                 map->grid[x][y].terrain = 1;
             }
         }
     }
+    map->grid[start->x][start->y].terrain = 0;
+    map->grid[end->x][end->y].terrain = 0;
     return map;
 }
 
