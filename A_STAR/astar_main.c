@@ -105,7 +105,7 @@ int main(int argc, char **argv)
 struct astar_node *astar_path(struct field *map, struct coord start, struct coord end)
 {
     struct coord adjacentOffset[8] = {{-1,-1}, {-1, 0}, {-1, 1}, {0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}};
-    int adjacentWeight[8] = {14, 10, 14, 10, 14, 10, 14, 10};
+    int adjacentWeight[8] = {1414, 1000, 1414, 1000, 1414, 1000, 1414, 1000};
     bl_heap *openList = bl_heap_new(10, astar_priority);    //priority queue of expanded nodes
     bl_hashtable *nodeList = bl_hashtable_new(100);         //table of all expanded nodes
     
@@ -129,12 +129,12 @@ struct astar_node *astar_path(struct field *map, struct coord start, struct coor
             int chY = node->cur.y + adjacentOffset[i].y;
             if((chX >= 0 && chX < map->xLen) && (chY >= 0 && chY < map->yLen)) {
                 // coordinates are valid
-                struct coord tmp = {chX, chY};
-                if(bl_hashtable_get(nodeList, &tmp, sizeof(struct coord))) {
-                    continue;
+                struct coord newCoord = {chX, chY};
+                if(bl_hashtable_get(nodeList, &newCoord, sizeof(struct coord))) {
+                    continue; // already expanded
                 }
                 struct astar_node *adjNode = malloc(sizeof(struct astar_node));
-                adjNode->cur = (struct coord){chX, chY};
+                adjNode->cur = newCoord;
                 adjNode->prev = node;
                 adjNode->weightFromStart = node->weightFromStart + adjacentWeight[i];
                 adjNode->weightTotal = adjNode->weightFromStart + grid_heuristic(adjNode->cur, end);
@@ -153,9 +153,9 @@ int grid_heuristic(struct coord cur, struct coord end)
     // TODO: put weight and diagWeight in with terrain so the map can have different weighted tiles
     int dx = abs(cur.x - end.x);
     int dy = abs(cur.y - end.y);
-    int weight = 10;
-    int diagWeight = 14;
-    return weight * (dx + dy) + (diagWeight - 2 * weight) * MIN(dx, dy);
+    int weight = 1000;
+    int diagWeight = 1414;
+    return weight * (dx + dy) + (diagWeight - (2 * weight)) * MIN(dx, dy);
 }
 
 struct field *init_map(int xLen, int yLen)
@@ -198,12 +198,13 @@ struct field *init_map_file(FILE *file, struct coord *start, struct coord *end)
             }
         }
     }
+    return map;
 }
 
 struct field *init_map_rand(struct coord *start, struct coord *end)
 {
-    int xLen = (rand() % 15) + 5; // 5 - 20
-    int yLen = (rand() % 15) + 5; // 5 - 20
+    int xLen = (rand() % 15) + 11; // 5 - 25
+    int yLen = (rand() % 15) + 5; // 5 - 25
     struct field *map = init_map(xLen, yLen);
     // random start/end
     *start = (struct coord){rand() % xLen, rand() % yLen};
