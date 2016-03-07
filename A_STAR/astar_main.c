@@ -9,10 +9,10 @@
        __typeof__ (b) _b = (b); \
     _a > _b ? _a : _b; })
     
- #define MIN(a,b) \
-   ({ __typeof__ (a) _a = (a); \
+#define MIN(a,b) \
+    ({ __typeof__ (a) _a = (a); \
        __typeof__ (b) _b = (b); \
-     _a < _b ? _a : _b; })
+    _a < _b ? _a : _b; })
 
 struct map_square {
     int terrain;
@@ -42,6 +42,7 @@ struct field *init_map_rand(struct coord *start, struct coord *end);
 struct astar_node *astar_path(struct field *map, struct coord start, struct coord end);
 int astar_priority(const void *a, const void *b);
 int grid_heuristic(struct coord cur, struct coord end);
+void print_map(struct field *map);
 
 int main(int argc, char **argv)
 {
@@ -63,39 +64,19 @@ int main(int argc, char **argv)
     
     struct astar_node *endNode = NULL;
     endNode = astar_path(map, start, end);
-    
+
     if(endNode) {
-        printf("found something\n");
+        printf("path found\n");
     } else {
-        printf("found nothing\n");
+        printf("no path found\n");
     }
-    
+
     while(endNode) {
         map->grid[endNode->cur.x][endNode->cur.y].terrain = 2;
         endNode= endNode->prev;
     }
     
-    for(int y = map->yLen - 1; y >= 0; y--) {
-        printf("%2d ", y);
-        for(int x = 0; x < map->xLen; x++) {
-            switch(map->grid[x][y].terrain) {
-                case 0:
-                    printf("%c%c%c", 177, 177, 177);
-                    break;
-                case 1:
-                    printf("%c%c%c", 178, 178, 178);
-                    break;
-                case 2:
-                    printf(" X ");
-                    break;
-            }
-        }
-        printf("\n");
-    }
-    printf("  ");
-    for(int x = 0; x < map->xLen; x++) {
-        printf("%3d", x);
-    }
+    print_map(map);
     printf("\nstart = {%d,%d}\nend = {%d,%d}\n", start.x, start.y, end.x, end.y);
     
     return 0;
@@ -104,8 +85,8 @@ int main(int argc, char **argv)
 
 struct astar_node *astar_path(struct field *map, struct coord start, struct coord end)
 {
-    struct coord adjacentOffset[8] = {{-1,-1}, {-1, 0}, {-1, 1}, {0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}};
-    int adjacentWeight[8] = {1414, 1000, 1414, 1000, 1414, 1000, 1414, 1000};
+    struct coord adjOffset[8] = {{-1,-1}, {-1, 0}, {-1, 1}, {0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}};
+    int adjWeight[8] = {1414, 1000, 1414, 1000, 1414, 1000, 1414, 1000};
     bl_heap *openList = bl_heap_new(10, astar_priority);    //priority queue of expanded nodes
     bl_hashtable *nodeList = bl_hashtable_new(100);         //table of all expanded nodes
     
@@ -125,23 +106,35 @@ struct astar_node *astar_path(struct field *map, struct coord start, struct coor
         }
         //TODO: go through every adjacent node
         for(int i = 0; i < 8; i++) {
-            int chX = node->cur.x + adjacentOffset[i].x;
-            int chY = node->cur.y + adjacentOffset[i].y;
+            int chX = node->cur.x + adjOffset[i].x;
+            int chY = node->cur.y + adjOffset[i].y;
             if((chX >= 0 && chX < map->xLen) && (chY >= 0 && chY < map->yLen)) {
                 // coordinates are valid
                 struct coord newCoord = {chX, chY};
-                if(bl_hashtable_get(nodeList, &newCoord, sizeof(struct coord))) {
+                struct astar_node *tmpNode = bl_hashtable_get(nodeList, &newCoord, sizeof(struct coord));
+                if(tmpNode) { // node already expanded
+                    if(map->grid[chX][chY].terrain != 1) { // not a wall
+                        int tmpWeight = node->weightFromStart + grid_heuristic(tmpNode->cur, end) + adjWeight[i];
+                        if(tmpNode->weightTotal > tmpWeight) { // check if a better path to tmpNode exists
+                            tmpNode->prev = node;
+                            tmpNode->weightFromStart = node->weightFromStart + adjWeight[i];
+                            tmpNode->weightTotal = tmpWeight;
+                            bl_heap_push(openList, tmpNode); // node has been added more than once (this is ok)
+                        }
+                    }
                     continue; // already expanded
+                } else {
+                    struct astar_node *adjNode = malloc(sizeof(struct astar_node));
+                    adjNode->cur = newCoord;
+                    adjNode->prev = node;
+                    adjNode->weightFromStart = node->weightFromStart + adjWeight[i];
+                    adjNode->weightTotal = adjNode->weightFromStart + grid_heuristic(adjNode->cur, end);
+                    if(map->grid[chX][chY].terrain != 1) {// not a "wall"
+                        bl_heap_push(openList, adjNode);
+                        map->grid[chX][chY].terrain = 3; //TODO: this is debug feature
+                    }
+                    bl_hashtable_insert(nodeList, &adjNode->cur, sizeof(struct coord), adjNode);
                 }
-                struct astar_node *adjNode = malloc(sizeof(struct astar_node));
-                adjNode->cur = newCoord;
-                adjNode->prev = node;
-                adjNode->weightFromStart = node->weightFromStart + adjacentWeight[i];
-                adjNode->weightTotal = adjNode->weightFromStart + grid_heuristic(adjNode->cur, end);
-                if(map->grid[chX][chY].terrain != 1) {// not a "wall"
-                    bl_heap_push(openList, adjNode);
-                }
-                bl_hashtable_insert(nodeList, &adjNode->cur, sizeof(struct coord), adjNode);
             }
         }
     }
@@ -212,7 +205,7 @@ struct field *init_map_rand(struct coord *start, struct coord *end)
     // fill grid with random walls
     for(int x = 0; x < xLen; x++) {
         for(int y = 0; y < yLen; y++) {
-            if(rand() % 100 < 40){ // 20% chance of wall
+            if(rand() % 100 < 40){ // 40% chance of wall
                 map->grid[x][y].terrain = 1;
             }
         }
@@ -226,5 +219,33 @@ int astar_priority(const void *a, const void *b)
 {
     struct astar_node *node1 = (struct astar_node *)a;
     struct astar_node *node2 = (struct astar_node *)b;
-    return node2->weightTotal - node1->weightTotal; // lower weight is better 
+    return node2->weightTotal - node1->weightTotal; // lower weight is better
+}
+
+void print_map(struct field *map)
+{
+    for(int y = map->yLen - 1; y >= 0; y--) {
+        printf("%2d ", y);
+        for(int x = 0; x < map->xLen; x++) {
+            switch(map->grid[x][y].terrain) {
+                case 0:
+                    printf("%c%c%c", 177, 177, 177);
+                    break;
+                case 1:
+                    printf("%c%c%c", 178, 178, 178);
+                    break;
+                case 2:
+                    printf(" X ");
+                    break;
+                case 3:
+                    printf("%c%c%c", 176, 176, 176);
+                    break;
+            }
+        }
+        printf("\n");
+    }
+    printf("  ");
+    for(int x = 0; x < map->xLen; x++) {
+        printf("%3d", x);
+    }
 }
