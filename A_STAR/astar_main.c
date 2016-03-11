@@ -36,6 +36,14 @@ struct astar_node {
     int weightTotal;
 };
 
+struct jps_node {
+    struct coord cur;
+    struct jps_node *prev;
+    int direction; // -1 means from no direction (start node)
+    int weightFromStart;
+    int weightTotal;
+};
+
 struct field *init_map(int xLen, int yLen);
 struct field *init_map_file(FILE *file, struct coord *start, struct coord *end);
 struct field *init_map_rand(struct coord *start, struct coord *end);
@@ -104,7 +112,7 @@ struct astar_node *astar_path(struct field *map, struct coord start, struct coor
         if(node->cur.x == end.x && node->cur.y == end.y) {
             return node;
         }
-        //TODO: go through every adjacent node
+        // go through every adjacent node
         for(int i = 0; i < 8; i++) {
             int chX = node->cur.x + adjOffset[i].x;
             int chY = node->cur.y + adjOffset[i].y;
@@ -137,6 +145,53 @@ struct astar_node *astar_path(struct field *map, struct coord start, struct coor
                 }
             }
         }
+    }
+    return NULL;
+}
+
+struct jps_node *jps_path(struct field *map, struct coord start, struct coord end)
+{
+    struct coord adjOffset[8] = {{-1,-1}, {-1, 0}, {-1, 1}, {0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}};
+    bl_heap *openList = bl_heap_new(10, astar_priority);  // priority queue of expanded nodes
+    bl_hashtabls *nodeList = bl_hashtable_new(100);       // table of all expanded nodes
+    
+    // init start node and have it go in all directions
+    struct jps_node *node = malloc(sizeof(struct jps_node));
+    node->cur = start;
+    node->prev = NULL;
+    node->direction = -1;
+    node->weightFromStart = 0;
+    node->weightTotal = grid_heuristic(node->cur, end);
+    bl_heap_push(openList, node);
+    bl_hashtable_insert(nodeList, &node->cur, sizeof(struct coord), node);
+    // init every adjacent node to the start node? (probably easier)
+    //TODO: deal with edge case of how to init the start node and the nodes around it
+    
+    // go through each node in the openList
+    while((node = bl_heap_pop(openList))) {
+        if(node->cur.x == end.x && node->cur.y == end.y) {
+            return node;
+        }
+        int chX = node->cur.x + adjOffset[node->direction].x;
+        int chY = node->cur.y + adjOffset[node->direction].y;
+        if(node->direction % 2 == 0) { // diagonal
+            
+        } else { // horizontal
+            // go until there is wall on left of right
+            struct coord left = adjOffset[(node->direction - 2) % 8]
+            struct coord right = adjOffset[(node->direction + 2) % 8]
+            left.x += node->cur.x;
+            left.y += node->cur.y;
+            right.x += node->cur.x;
+            right.y += node->cur.y;
+            //TODO: do it right
+            //TODO: case where there's wall and it has to go diagonal or something (look online)
+        }
+        // use JPS to jump in that direction and continually search diagonally for jump points
+        // horiz -- when there is wall to left or right
+        // diag -- when there is wall to left or right of horizontally expanded node
+            // add that to the openList
+        
     }
     return NULL;
 }
