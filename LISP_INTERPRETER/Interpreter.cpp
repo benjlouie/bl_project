@@ -19,7 +19,13 @@ int main()
 {
     list<expression*> l;
 
-    l.push_front(new expression("(+ 3 4)"));
+    l.push_front(new expression("testval(this is)something(a test)(ok(k))"));
+    cout << endl << endl;
+    l.push_back(new expression("(+ 3.678 -4 - 5)woops"));
+    
+    /*for(list<expression *>::iterator it = l.begin(); it != l.end(); it++) {
+        (*it)->print();
+    }*/
     
     
     return 0;
