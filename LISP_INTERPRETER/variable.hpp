@@ -12,6 +12,7 @@
 #include <string>
 #include <cstdlib>
 #include <stdexcept>
+#include <cmath>
 
 using namespace std;
 

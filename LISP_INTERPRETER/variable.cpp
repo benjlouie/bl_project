@@ -105,28 +105,116 @@ variable variable::add(variable *var1, variable *var2)
 variable variable::subtract(variable *var1, variable *var2)
 {
     variable retVal;
-
+    retVal.op = OPERAND;
+    if((var1->type == INT || var1->type == FLOAT) && (var2->type == INT || var2->type == FLOAT)) {
+        if(var1->type == INT) {
+            if(var2->type == INT) {
+                retVal.type = INT;
+                retVal.data.i = var1->data.i - var2->data.i;
+            } else {
+                retVal.type = FLOAT;
+                retVal.data.f = float(var1->data.i) - var2->data.f;
+            }
+        } else {
+            retVal.type = FLOAT;
+            if(var2->type == INT) {
+                retVal.data.f = var1->data.f - float(var2->data.i);
+            } else {
+                retVal.data.f = var1->data.f - var2->data.f;
+            }
+        }
+    } else {
+        // ERROR: can't add bad types
+        throw invalid_argument("variable::add(): can't subtract " + var1->getType() + " and " + var2->getType() + "\n");
+    }
+    
     return retVal;
 }
 
 variable variable::multiply(variable *var1, variable *var2)
 {
     variable retVal;
-
+    retVal.op = OPERAND;
+    if((var1->type == INT || var1->type == FLOAT) && (var2->type == INT || var2->type == FLOAT)) {
+        if(var1->type == INT) {
+            if(var2->type == INT) {
+                retVal.type = INT;
+                retVal.data.i = var1->data.i * var2->data.i;
+            } else {
+                retVal.type = FLOAT;
+                retVal.data.f = float(var1->data.i) * var2->data.f;
+            }
+        } else {
+            retVal.type = FLOAT;
+            if(var2->type == INT) {
+                retVal.data.f = var1->data.f * float(var2->data.i);
+            } else {
+                retVal.data.f = var1->data.f * var2->data.f;
+            }
+        }
+    } else {
+        // ERROR: can't add bad types
+        throw invalid_argument("variable::add(): can't multiply " + var1->getType() + " and " + var2->getType() + "\n");
+    }
+    
     return retVal;
 }
 
 variable variable::divide(variable *var1, variable *var2)
 {
     variable retVal;
-
+    retVal.op = OPERAND;
+    if((var1->type == INT || var1->type == FLOAT) && (var2->type == INT || var2->type == FLOAT)) {
+        if(var1->type == INT) {
+            if(var2->type == INT) {
+                retVal.type = INT;
+                retVal.data.i = var1->data.i / var2->data.i;
+            } else {
+                retVal.type = FLOAT;
+                retVal.data.f = float(var1->data.i) / var2->data.f;
+            }
+        } else {
+            retVal.type = FLOAT;
+            if(var2->type == INT) {
+                retVal.data.f = var1->data.f / float(var2->data.i);
+            } else {
+                retVal.data.f = var1->data.f / var2->data.f;
+            }
+        }
+    } else {
+        // ERROR: can't add bad types
+        throw invalid_argument("variable::add(): can't divide " + var1->getType() + " and " + var2->getType() + "\n");
+    }
+    
     return retVal;
 }
 
 variable variable::modulus(variable *var1, variable *var2)
 {
     variable retVal;
-
+    retVal.op = OPERAND;
+    if((var1->type == INT || var1->type == FLOAT) && (var2->type == INT || var2->type == FLOAT)) {
+        if(var1->type == INT) {
+            if(var2->type == INT) {
+                retVal.type = INT;
+                retVal.data.i = var1->data.i % var2->data.i;
+            } else {
+                retVal.type = FLOAT;
+                retVal.data.f = fmod(float(var1->data.i), var2->data.f);
+            }
+        } else {
+            retVal.type = FLOAT;
+            if(var2->type == INT) {
+                retVal.data.f = fmod(var1->data.f, float(var2->data.i));
+            } else {
+                retVal.data.f = fmod(var1->data.f, var2->data.f);
+            }
+        }
+    } else {
+        // ERROR: can't add bad types
+        throw invalid_argument("variable::add(): can't subtract " + var1->getType() + " and " + var2->getType() + "\n");
+    }
+    
     return retVal;
 }
 
@@ -171,8 +259,9 @@ string variable::toString(void)
                 case CHAR:
                     return "" + data.c;
                 case INT:
-                case FLOAT:
                     return to_string(data.i);
+                case FLOAT:
+                    return to_string(data.f);
                 case STRING:
                      return *data.str;
                 case NIL:
