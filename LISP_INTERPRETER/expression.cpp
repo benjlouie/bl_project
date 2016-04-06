@@ -96,13 +96,11 @@ variable expression::evaluate(void)
         return finalVar;
     }
     
-    variable vars[exps.size()]; //need +1?
+    variable vars[exps.size()];
     
     int size = 0;
-    while(exps.size() > 0) {
-        expression *tmp = exps.back();
-        exps.pop_back();
-        vars[size] = tmp->evaluate();
+    for(list<expression *>::reverse_iterator rit = exps.rbegin(); rit != exps.rend(); rit++) {
+        vars[size] = (*rit)->evaluate(); //CHECK: might need try,catch here
         size++;
     }
     //have array of variables (ex: 5 10 3 + +)
@@ -110,14 +108,18 @@ variable expression::evaluate(void)
     int i = 0;
     while(size > 1) {
         // get to operator
-        while(!vars[i].isOperator()) {
+        while(i < size && !vars[i].isOperator()) {
             i++;
         }
-        if(i < 2) {
+        if(i == size) {
+            // not enough operators for operands
+            throw invalid_argument("expression::evaluate(): not enough operators\n");
+        } else if(i < 2) {
             // not enough operands for operation
             throw invalid_argument("expression::evaluate(): not enough operands\n");
         } else {
-            vars[i-2] = vars[i].operate(vars[i-1], vars[i-2]);
+            cout << vars[i].toString();
+            vars[i-2] = vars[i].operate(vars[i-1], vars[i-2]); //CHECK: might need try,catch here
             memcpy(&vars[i - 1], &vars[i + 1], (size - i) * sizeof(variable));
             i--;
             size -= 2;
