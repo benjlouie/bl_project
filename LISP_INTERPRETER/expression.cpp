@@ -105,15 +105,7 @@ variable expression::evaluate(void)
         vars[size] = tmp->evaluate();
         size++;
     }
-    //have array of variables
-    cout << "size = " << size << endl;
-    
-    // reverse list
-    /*for(int i = 0; i < size / 2; i++) {
-        variable tmp = vars[i];
-        vars[i] = vars[size - i - 1];
-        vars[size - i - 1] = tmp;
-    }*/
+    //have array of variables (ex: 5 10 3 + +)
     
     int i = 0;
     while(size > 1) {

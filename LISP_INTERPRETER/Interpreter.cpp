@@ -31,7 +31,7 @@ int main()
     expression *exp = l.front();
     variable answer = exp->evaluate();
     
-    cout << answer.toString() << endl;
+    cout << "\n\tresult: " << answer.toString() << endl;
     
     
     return 0;
