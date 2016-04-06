@@ -125,7 +125,7 @@ variable variable::subtract(variable *var1, variable *var2)
         }
     } else {
         // ERROR: can't add bad types
-        throw invalid_argument("variable::add(): can't subtract " + var1->getType() + " and " + var2->getType() + "\n");
+        throw invalid_argument("variable::subtract(): can't subtract " + var1->getType() + " and " + var2->getType() + "\n");
     }
     
     return retVal;
@@ -154,7 +154,7 @@ variable variable::multiply(variable *var1, variable *var2)
         }
     } else {
         // ERROR: can't add bad types
-        throw invalid_argument("variable::add(): can't multiply " + var1->getType() + " and " + var2->getType() + "\n");
+        throw invalid_argument("variable::multiply(): can't multiply " + var1->getType() + " and " + var2->getType() + "\n");
     }
     
     return retVal;
@@ -183,7 +183,7 @@ variable variable::divide(variable *var1, variable *var2)
         }
     } else {
         // ERROR: can't add bad types
-        throw invalid_argument("variable::add(): can't divide " + var1->getType() + " and " + var2->getType() + "\n");
+        throw invalid_argument("variable::divide(): can't divide " + var1->getType() + " and " + var2->getType() + "\n");
     }
     
     return retVal;
@@ -212,7 +212,7 @@ variable variable::modulus(variable *var1, variable *var2)
         }
     } else {
         // ERROR: can't add bad types
-        throw invalid_argument("variable::add(): can't subtract " + var1->getType() + " and " + var2->getType() + "\n");
+        throw invalid_argument("variable::modulus(): can't modulus " + var1->getType() + " and " + var2->getType() + "\n");
     }
     
     return retVal;

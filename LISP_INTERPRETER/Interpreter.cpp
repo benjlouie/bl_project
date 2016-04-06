@@ -21,7 +21,6 @@ int main()
 
     //l.push_front(new expression("testval(this(for(ever(and(ever(and(all(that)))ok)))) is)something(a test)(ok(k))"));
     cout << endl << endl;
-    l.push_back(new expression("(+ 2 - (* / 3 4 4) 4)"));
     
     for(list<expression *>::iterator it = l.begin(); it != l.end(); it++) {
         (*it)->print();
@@ -29,7 +28,12 @@ int main()
     cout << endl;
     
     expression *exp = l.front();
-    variable answer = exp->evaluate();
+    variable answer;
+    try{
+        answer = exp->evaluate();
+    } catch(exception &e) {
+        cout << e.what();
+    }
     
     cout << "\n\tresult: " << answer.toString() << endl;
     
