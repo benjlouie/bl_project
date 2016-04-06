@@ -24,7 +24,6 @@ class expression {
         string paren_chunk(string input, unsigned *index);
         string var_chunk(string input, unsigned *index);
     public:
-        expression(void);                       //empty
         expression(variable var);               //has variable (no list)
         expression(string value);               //list of expressions (or just variable if only one)
         void parse(string input);

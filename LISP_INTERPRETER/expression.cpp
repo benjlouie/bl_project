@@ -9,11 +9,6 @@
  
 #include "expression.hpp"
 
-expression::expression(void)
-{
-    
-}
-
 expression::expression(variable var)
 {
     finalVar = var;
@@ -48,7 +43,6 @@ void expression::parse(string input)
             if(endFlag && exps.size() == 0) {
                 finalVar.parse(tmp);
                 debugString = tmp;
-                //cout << tmp << endl;
             } else { // add expression to list
                 exps.push_back(new expression(tmp));
             }
@@ -99,17 +93,47 @@ string expression::var_chunk(string input, unsigned *index)
 variable expression::evaluate(void)
 {
     //TODO: make proper function
-    cout << "evaluate\n";
-    return finalVar;
+    cout << "inside evaluate()" << endl;
+    if(exps.size() == 0) {
+        cout << "eval recurse 0: " + finalVar.toString() << endl;
+        return finalVar;
+    }
+    
+    if(exps.size() == 1) {
+        return exps.front()->evaluate();
+    }
+    
+    
+    while(exps.size() > 1) {
+        expression *opExp = exps.front();
+        variable eval = opExp->evaluate();
+        cout << "test1\n";
+        if(eval.isOperator()) {
+            cout << "test2\n";
+            // needs to operate on the next two
+            exps.pop_front();
+            expression exp1 = *exps.front();
+            exps.pop_front();
+            expression exp2 = *exps.front();
+            exps.pop_front();
+            opExp->finalVar = eval.operate(exp1.evaluate(), exp2.evaluate());
+            exps.push_front(opExp);
+        } else {
+            break;
+        }
+    }
+    return exps.front()->finalVar;
 }
 
 void expression::print(void)
 {
     if(exps.size() == 0) {
-        cout << debugString << endl;
+        cout << debugString;
         return;
     }
     for(list<expression *>::iterator it = exps.begin(); it != exps.end(); it++) {
+        cout << "[";
         (*it)->print();
+        cout << "]";
     }
 }

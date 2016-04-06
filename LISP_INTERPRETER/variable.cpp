@@ -8,12 +8,6 @@
  */
 #include "variable.hpp"
 
-variable v_add(variable *var1, variable *var2);
-variable v_subtract(variable *var1, variable *var2);
-variable v_multiply(variable *var1, variable *var2);
-variable v_divide(variable *var1, variable *var2);
-variable v_modulus(variable *var1, variable *var2);
-
 variable::variable(void)
 {
     type = NIL;
@@ -29,7 +23,7 @@ variable::variable(string input)
 void variable::parse(string input)
 {
     //TODO: make proper function
-    cout << input << "\t\t";
+    cout << input << " : ";
     if(isalpha(input[0])) {
         //variable or string or character
         data.str = new string;
@@ -41,36 +35,35 @@ void variable::parse(string input)
             //float value
             data.f = stof(input);
             type = FLOAT;
-        cout << "FLOAT\n";
+            cout << "FLOAT\n";
         } else {
             //int value
             data.i = stoi(input);
             type = INT;
-        cout << "INT\n";
+            cout << "INT\n";
         }
     } else {
         type = UNKNOWN;
-        // TODO: + - * /
         switch(input[0]) {
             case '+':
                 op = OPERATOR;
-                operation = v_add;
+                operation = add;
                 break;
             case '-':
                 op = OPERATOR;
-                operation = v_subtract;
+                operation = subtract;
                 break;
             case '*':
                 op = OPERATOR;
-                operation = v_multiply;
+                operation = multiply;
                 break;
             case '/':
                 op = OPERATOR;
-                operation = v_divide;
+                operation = divide;
                 break;
             case '%':
                 op = OPERATOR;
-                operation = v_modulus;
+                operation = modulus;
                 break;
             default: //incorect input
                 throw invalid_argument("variable::parse(): input \"" + input + "\" cannot be parsed\n");
@@ -80,37 +73,128 @@ void variable::parse(string input)
 }
 
 //TODO: implement these
-variable v_add(variable *var1, variable *var2)
+variable variable::add(variable *var1, variable *var2)
 {
     variable retVal;
+    retVal.op = OPERAND;
+    if((var1->type == INT || var1->type == FLOAT) && (var2->type == INT || var2->type == FLOAT)) {
+        if(var1->type == INT) {
+            if(var2->type == INT) {
+                retVal.type = INT;
+                retVal.data.i = var1->data.i + var2->data.i;
+            } else {
+                retVal.type = FLOAT;
+                retVal.data.f = float(var1->data.i) + var2->data.f;
+            }
+        } else {
+            retVal.type = FLOAT;
+            if(var2->type == INT) {
+                retVal.data.f = var1->data.f + float(var2->data.i);
+            } else {
+                retVal.data.f = var1->data.f + var2->data.f;
+            }
+        }
+    } else {
+        // ERROR: can't add bad types
+        throw invalid_argument("variable::add(): can't add " + var1->getType() + " and " + var2->getType() + "\n");
+    }
     
     return retVal;
 }
 
-variable v_subtract(variable *var1, variable *var2)
+variable variable::subtract(variable *var1, variable *var2)
 {
     variable retVal;
 
     return retVal;
 }
 
-variable v_multiply(variable *var1, variable *var2)
+variable variable::multiply(variable *var1, variable *var2)
 {
     variable retVal;
 
     return retVal;
 }
 
-variable v_divide(variable *var1, variable *var2)
+variable variable::divide(variable *var1, variable *var2)
 {
     variable retVal;
 
     return retVal;
 }
 
-variable v_modulus(variable *var1, variable *var2)
+variable variable::modulus(variable *var1, variable *var2)
 {
     variable retVal;
 
     return retVal;
+}
+
+variable variable::operate(variable var1, variable var2)
+{
+    return (this->*operation)(&var1, &var2);
+}
+
+bool variable::isOperator(void)
+{
+    if(op == OPERATOR) {
+        return true;
+    }
+    return false;
+}
+
+string variable::getType(void)
+{
+    switch(type) {
+        case CHAR:
+            return "CHAR";
+        case INT:
+            return "INT";
+        case FLOAT:
+            return "FLOAT";
+        case STRING:
+            return "STRING";
+        case NIL:
+            return "NIL";
+        case UNKNOWN:
+            return "UNKNOWN";
+        default:
+            return "variable::getType() SOMETHING BORKED";
+    }
+}
+
+string variable::toString(void)
+{
+    switch(op) {
+        case OPERAND:
+            switch(type) {
+                case CHAR:
+                    return "" + data.c;
+                case INT:
+                case FLOAT:
+                    return to_string(data.i);
+                case STRING:
+                     return *data.str;
+                case NIL:
+                    return "NIL";
+                case UNKNOWN:
+                    return "~UNKNOWN~";
+            }
+        case OPERATOR:
+            if(operation == &add) {
+                return "+";
+            } else if(operation == &subtract) {
+                return "-";
+            } else if(operation == &multiply) {
+                return "*";
+            } else if(operation == &divide) {
+                return "/";
+            } else if(operation == &modulus) {
+                return "%";
+            }
+        case FUNCTION:
+            return "~FUNCTION~";
+        default:
+            return "variable::toString() SOMETHING BORKED";
+    }
 }

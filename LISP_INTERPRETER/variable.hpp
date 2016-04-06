@@ -21,16 +21,25 @@ class variable {
     private:
         VarType type = UNKNOWN;
         OpType op = OPERAND;
+        variable (variable::*operation)(variable *var1, variable *var2) = NULL;
         union var {
             char c;
             int i;
             float f;
             string *str;
         } data;
-        variable (*operation)(variable *var1, variable *var2);
+        
+        variable add(variable *var1, variable *var2);
+        variable subtract(variable *var1, variable *var2);
+        variable multiply(variable *var1, variable *var2);
+        variable divide(variable *var1, variable *var2);
+        variable modulus(variable *var1, variable *var2);
     public:
         variable(void);
         variable(string input);
         void parse(string input);
-        
+        variable operate(variable var1, variable var2);
+        bool isOperator(void);
+        string getType(void);
+        string toString(void);
 };
