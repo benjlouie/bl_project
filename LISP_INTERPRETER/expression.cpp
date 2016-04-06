@@ -92,37 +92,46 @@ string expression::var_chunk(string input, unsigned *index)
 
 variable expression::evaluate(void)
 {
-    //TODO: make proper function
-    cout << "inside evaluate()" << endl;
     if(exps.size() == 0) {
-        cout << "eval recurse 0: " + finalVar.toString() << endl;
         return finalVar;
     }
     
-    if(exps.size() == 1) {
-        return exps.front()->evaluate();
+    variable vars[exps.size()]; //need +1?
+    
+    int size = 0;
+    while(exps.size() > 0) {
+        expression *tmp = exps.back();
+        exps.pop_back();
+        vars[size] = tmp->evaluate();
+        size++;
     }
+    //have array of variables
+    cout << "size = " << size << endl;
     
+    // reverse list
+    /*for(int i = 0; i < size / 2; i++) {
+        variable tmp = vars[i];
+        vars[i] = vars[size - i - 1];
+        vars[size - i - 1] = tmp;
+    }*/
     
-    while(exps.size() > 1) {
-        expression *opExp = exps.front();
-        variable eval = opExp->evaluate();
-        cout << "test1\n";
-        if(eval.isOperator()) {
-            cout << "test2\n";
-            // needs to operate on the next two
-            exps.pop_front();
-            expression exp1 = *exps.front();
-            exps.pop_front();
-            expression exp2 = *exps.front();
-            exps.pop_front();
-            opExp->finalVar = eval.operate(exp1.evaluate(), exp2.evaluate());
-            exps.push_front(opExp);
+    int i = 0;
+    while(size > 1) {
+        // get to operator
+        while(!vars[i].isOperator()) {
+            i++;
+        }
+        if(i < 2) {
+            // not enough operands for operation
+            throw invalid_argument("expression::evaluate(): not enough operands\n");
         } else {
-            break;
+            vars[i-2] = vars[i].operate(vars[i-1], vars[i-2]);
+            memcpy(&vars[i - 1], &vars[i + 1], (size - i) * sizeof(variable));
+            i--;
+            size -= 2;
         }
     }
-    return exps.front()->finalVar;
+    return vars[0];
 }
 
 void expression::print(void)
