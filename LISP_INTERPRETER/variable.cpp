@@ -23,24 +23,24 @@ variable::variable(string input)
 void variable::parse(string input)
 {
     //TODO: make proper function
-    cout << input << " : ";
+    //cout << input << " : ";
     if(isalpha(input[0])) {
         //variable or string or character
         data.str = new string;
         *data.str = input;
         type = STRING;
-        cout << "STRING\n";
+        //cout << "STRING\n";
     } else if(isdigit(input[0]) || (input[0] == '-' && isdigit(input[1]))) {
         if(input.find('.') != string::npos) {
             //float value
             data.f = stof(input);
             type = FLOAT;
-            cout << "FLOAT\n";
+            //cout << "FLOAT\n";
         } else {
             //int value
             data.i = stoi(input);
             type = INT;
-            cout << "INT\n";
+            //cout << "INT\n";
         }
     } else {
         type = UNKNOWN;
@@ -68,7 +68,7 @@ void variable::parse(string input)
             default: //incorect input
                 throw invalid_argument("variable::parse(): input \"" + input + "\" cannot be parsed\n");
         }
-        cout << "OPERATOR\n";
+        //cout << "OPERATOR\n";
     }
 }
 
@@ -168,17 +168,33 @@ variable variable::divide(variable *var1, variable *var2)
         if(var1->type == INT) {
             if(var2->type == INT) {
                 retVal.type = INT;
-                retVal.data.i = var1->data.i / var2->data.i;
+                if(var2->data.i == 0) {
+                	throw invalid_argument("variable::divide(): division by zero\n");
+				} else {
+	                retVal.data.i = var1->data.i / var2->data.i;
+				}
             } else {
                 retVal.type = FLOAT;
-                retVal.data.f = float(var1->data.i) / var2->data.f;
+                if(var2->data.i == 0) {
+                	throw invalid_argument("variable::divide(): division by zero\n");
+				} else {
+					retVal.data.f = float(var1->data.i) / var2->data.f;
+				}
             }
         } else {
             retVal.type = FLOAT;
             if(var2->type == INT) {
-                retVal.data.f = var1->data.f / float(var2->data.i);
+                if(var2->data.i == 0) {
+                	throw invalid_argument("variable::divide(): division by zero\n");
+				} else {
+					retVal.data.f = var1->data.f / float(var2->data.i);
+				}
             } else {
-                retVal.data.f = var1->data.f / var2->data.f;
+                if(var2->data.i == 0) {
+                	throw invalid_argument("variable::divide(): division by zero\n");
+				} else {
+					retVal.data.f = var1->data.f / var2->data.f;
+				}
             }
         }
     } else {
@@ -197,17 +213,33 @@ variable variable::modulus(variable *var1, variable *var2)
         if(var1->type == INT) {
             if(var2->type == INT) {
                 retVal.type = INT;
-                retVal.data.i = var1->data.i % var2->data.i;
+                if(var2->data.i == 0) {
+                	throw invalid_argument("variable::modulus(): division by zero\n");
+				} else {
+					retVal.data.i = var1->data.i % var2->data.i;
+				}
             } else {
                 retVal.type = FLOAT;
-                retVal.data.f = fmod(float(var1->data.i), var2->data.f);
+                if(var2->data.i == 0) {
+                	throw invalid_argument("variable::modulus(): division by zero\n");
+				} else {
+					retVal.data.f = fmod(float(var1->data.i), var2->data.f);
+				}
             }
         } else {
             retVal.type = FLOAT;
             if(var2->type == INT) {
-                retVal.data.f = fmod(var1->data.f, float(var2->data.i));
+                if(var2->data.i == 0) {
+                	throw invalid_argument("variable::modulus(): division by zero\n");
+				} else {
+					retVal.data.f = fmod(var1->data.f, float(var2->data.i));
+				}
             } else {
-                retVal.data.f = fmod(var1->data.f, var2->data.f);
+                if(var2->data.i == 0) {
+                	throw invalid_argument("variable::modulus(): division by zero\n");
+				} else {
+					retVal.data.f = fmod(var1->data.f, var2->data.f);
+				}
             }
         }
     } else {

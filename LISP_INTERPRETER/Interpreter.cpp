@@ -9,34 +9,36 @@
 
 #include <iostream>
 #include <list>
+#include <unordered_map>
 #include <string>
 #include "expression.hpp"
 
 using namespace std;
 
+unordered_map<string, variable> globalVars;
 
 int main()
 {
-    list<expression*> l;
-
-    //l.push_front(new expression("testval(this(for(ever(and(ever(and(all(that)))ok)))) is)something(a test)(ok(k))"));
-    cout << endl << endl;
-    l.push_back(new expression("(/ lol + 3 lol)"));
-    
-    for(list<expression *>::iterator it = l.begin(); it != l.end(); it++) {
-        (*it)->print();
-    }
-    cout << endl;
-    
-    expression *exp = l.front();
-    variable answer;
-    try{
-        answer = exp->evaluate();
-    } catch(exception &e) {
-        cout << e.what();
-    }
-    
-    cout << "\n\tresult: " << answer.toString() << endl;
+    while(1) {
+    	cout << "Prompt> ";
+    	string input;
+    	getline(cin, input);
+    	if(input.size() == 0) {
+    		continue;
+		}
+    	
+    	//check for specific commands here
+    	
+    	
+    	expression *exp = new expression(input, &globalVars);
+    	exp->globalVars = &globalVars;
+    	try{
+    		cout << exp->evaluate().toString() << endl;
+		} catch (exception &e) {
+			cout << "ERROR: " << e.what() << endl;
+		}
+		delete exp;
+	}
     
     
     return 0;

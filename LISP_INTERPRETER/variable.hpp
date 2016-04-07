@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include <list>
+#include <unordered_map>
 #include <string>
 #include <cstdlib>
 #include <stdexcept>
@@ -36,6 +37,10 @@ class variable {
         variable divide(variable *var1, variable *var2);
         variable modulus(variable *var1, variable *var2);
     public:
+    	// these two should be set when instantiated
+    	unordered_map<string, variable> *localVars; // for function use
+    	unordered_map<string, variable> *globalVars; // for general expressions
+    	
         variable(void);
         variable(string input);
         void parse(string input);

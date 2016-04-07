@@ -12,10 +12,14 @@
 expression::expression(variable var)
 {
     finalVar = var;
+	finalVar.globalVars = globalVars;
+	finalVar.localVars = &localVars;
 }
 
-expression::expression(string input)
+expression::expression(string input, unordered_map<string, variable> *globalVars)
 {
+	finalVar.globalVars = globalVars;
+	finalVar.localVars = &localVars;
     parse(input);
 }
 
@@ -35,6 +39,8 @@ void expression::parse(string input)
                 tmp = paren_chunk(input.substr(start), &start);
             } else {
                 tmp = var_chunk(input.substr(start), &start);
+                //TODO: check for special arguments here
+                
                 if(start == length) {
                     endFlag = true;
                 }
@@ -44,7 +50,7 @@ void expression::parse(string input)
                 finalVar.parse(tmp);
                 debugString = tmp;
             } else { // add expression to list
-                exps.push_back(new expression(tmp));
+                exps.push_back(new expression(tmp, globalVars));
             }
         } else {
             start++;
@@ -118,7 +124,6 @@ variable expression::evaluate(void)
             // not enough operands for operation
             throw invalid_argument("expression::evaluate(): not enough operands\n");
         } else {
-            cout << vars[i].toString();
             vars[i-2] = vars[i].operate(vars[i-1], vars[i-2]); //CHECK: might need try,catch here
             memcpy(&vars[i - 1], &vars[i + 1], (size - i) * sizeof(variable));
             i--;
