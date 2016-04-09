@@ -125,7 +125,7 @@ variable expression::evaluate(void)
             throw invalid_argument("expression::evaluate(): not enough operands\n");
         } else {
             vars[i-2] = vars[i].operate(vars[i-1], vars[i-2]); //CHECK: might need try,catch here
-            memcpy(&vars[i - 1], &vars[i + 1], (size - i) * sizeof(variable));
+            memmove(&vars[i - 1], &vars[i + 1], (size - i) * sizeof(variable));
             i--;
             size -= 2;
         }
