@@ -22,13 +22,15 @@ class expression {
     	unordered_map<string, variable> localVars;
         list<expression *> exps;
         variable finalVar;
-        string debugString;
         string paren_chunk(string input, unsigned *index);
         string var_chunk(string input, unsigned *index);
-    public:
+        bool special_exp(string input, unsigned *index);
+	public:
+		string debugString;
     	unordered_map<string, variable> *globalVars;
-        expression(variable var);               //has variable (no list)
-        expression(string input, unordered_map<string, variable> *globalVars);              //list of expressions (or just variable if only one)
+		expression(unordered_map<string, variable> *global);
+        expression(variable var, unordered_map<string, variable> *global);               //has variable (no list)
+        expression(string input, unordered_map<string, variable> *global);              //list of expressions (or just variable if only one)
         void parse(string input);
         variable evaluate(void);
         void print(void);

@@ -18,7 +18,7 @@
 using namespace std;
 
 class variable {
-    enum VarType {CHAR, INT, FLOAT, STRING, NIL, UNKNOWN};
+    enum VarType {CHAR, INT, FLOAT, STRING, VARIABLE, NIL, UNKNOWN};
     enum OpType {OPERAND, OPERATOR, FUNCTION};
     private:
         VarType type = UNKNOWN;
@@ -42,7 +42,7 @@ class variable {
     	unordered_map<string, variable> *globalVars; // for general expressions
     	
         variable(void);
-        variable(string input);
+        variable(string input, bool isString);
         void parse(string input);
         variable operate(variable var1, variable var2);
         bool isOperator(void);

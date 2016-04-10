@@ -27,19 +27,22 @@ int main()
     		continue;
 		}
     	
-    	//check for specific commands here
-    	
-    	
-    	expression *exp = new expression(input, &globalVars);
-    	exp->globalVars = &globalVars;
-    	try{
-    		cout << exp->evaluate().toString() << endl;
-		} catch (exception &e) {
+		if (input == "quit" || input == "(quit)") {
+			break;
+		}
+
+    	expression *exp = NULL;
+		try{
+			exp = new expression(input, &globalVars);
+			cout << exp->evaluate().toString() << endl;
+		}
+		catch (exception &e) {
 			cout << "ERROR: " << e.what() << endl;
 		}
-		delete exp;
+		if (exp) {
+			delete exp; //TODO: find way to not delete functions
+		}
 	}
-    
     
     return 0;
 }
