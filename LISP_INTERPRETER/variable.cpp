@@ -15,14 +15,21 @@ variable::variable(void)
     op = OPERAND;
 }
 
-variable::variable(string input, bool isString = false)
+variable::variable(string input, bool isString = false, bool isFunction = false)
 {
     if(isString) {
         type = STRING;
 		data.str = new string;
 		*data.str = input;
         op = OPERAND;
-    } else {
+	}
+	else if (isFunction) {
+		type = UNKNOWN;
+		op = FUNCTION;
+		data.str = new string;
+		*data.str = input;
+	}
+	else {
         parse(input);
     }
 }
@@ -76,9 +83,21 @@ void variable::parse(string input)
             case '%':
                 op = OPERATOR;
 				operation = &variable::modulus;
-                break;
+				break;
+			case '>':
+				op = OPERATOR;
+				operation = &variable::greater;
+				break;
+			case '<':
+				op = OPERATOR;
+				operation = &variable::less;
+				break;
+			case '=':
+				op = OPERATOR;
+				operation = &variable::equal;
+				break;
             default: //incorect input
-                throw invalid_argument("variable::parse(): input \"" + input + "\" cannot be parsed\n");
+                throw invalid_argument("variable::parse(): input \"" + input + "\" cannot be parsed");
         }
         //cout << "OPERATOR\n";
     }
@@ -106,9 +125,32 @@ bool variable::isOperator(void)
     return false;
 }
 
+bool variable::isFunction(void)
+{
+	if (op == FUNCTION) {
+		return true;
+	}
+	return false;
+}
+
+bool variable::isNil(void)
+{
+	if (type == NIL) {
+		return true;
+	}
+	return false;
+}
+
+string variable::getFuncString(void)
+{
+	return *data.str;
+}
+
 string variable::getType(void)
 {
     switch(type) {
+		case BOOL:
+			return "BOOL";
         case CHAR:
             return "CHAR";
         case INT:
@@ -122,7 +164,7 @@ string variable::getType(void)
         case UNKNOWN:
             return "UNKNOWN";
         default:
-            return "SOMETHING BORKED";
+            return "BAD_TYPE";
     }
 }
 
@@ -131,6 +173,8 @@ string variable::toString(void)
     switch(op) {
         case OPERAND:
             switch(type) {
+				case BOOL:
+					return data.b ? "true" : "false";
                 case CHAR:
                     return "" + data.c;
                 case INT:
@@ -162,6 +206,15 @@ string variable::toString(void)
 			else if (operation == &variable::modulus) {
                 return "%";
             }
+			else if (operation == &variable::greater) {
+				return ">";
+			}
+			else if (operation == &variable::less) {
+				return "<";
+			}
+			else if (operation == &variable::equal) {
+				return "=";
+			}
         case FUNCTION:
             return "~FUNCTION~";
         default:
@@ -201,7 +254,7 @@ variable variable::add(variable *var1, variable *var2)
 	}
 	else {
 		// ERROR: can't add bad types
-		throw invalid_argument("variable::add(): can't add " + var1->getType() + " and " + var2->getType() + "\n");
+		throw invalid_argument("variable::add(): can't add " + var1->getType() + " and " + var2->getType());
 	}
 
 	return retVal;
@@ -234,7 +287,7 @@ variable variable::subtract(variable *var1, variable *var2)
 	}
 	else {
 		// ERROR: can't add bad types
-		throw invalid_argument("variable::subtract(): can't subtract " + var1->getType() + " and " + var2->getType() + "\n");
+		throw invalid_argument("variable::subtract(): can't subtract " + var1->getType() + " and " + var2->getType());
 	}
 
 	return retVal;
@@ -267,7 +320,7 @@ variable variable::multiply(variable *var1, variable *var2)
 	}
 	else {
 		// ERROR: can't add bad types
-		throw invalid_argument("variable::multiply(): can't multiply " + var1->getType() + " and " + var2->getType() + "\n");
+		throw invalid_argument("variable::multiply(): can't multiply " + var1->getType() + " and " + var2->getType());
 	}
 
 	return retVal;
@@ -320,7 +373,7 @@ variable variable::divide(variable *var1, variable *var2)
 	}
 	else {
 		// ERROR: can't add bad types
-		throw invalid_argument("variable::divide(): can't divide " + var1->getType() + " and " + var2->getType() + "\n");
+		throw invalid_argument("variable::divide(): can't divide " + var1->getType() + " and " + var2->getType());
 	}
 
 	return retVal;
@@ -373,7 +426,110 @@ variable variable::modulus(variable *var1, variable *var2)
 	}
 	else {
 		// ERROR: can't add bad types
-		throw invalid_argument("variable::modulus(): can't modulus " + var1->getType() + " and " + var2->getType() + "\n");
+		throw invalid_argument("variable::modulus(): can't modulus " + var1->getType() + " and " + var2->getType());
+	}
+
+	return retVal;
+}
+
+
+variable variable::greater(variable *var1, variable *var2)
+{
+	variable retVal;
+	retVal.op = OPERAND;
+	retVal.type = BOOL;
+	if ((var1->type == INT || var1->type == FLOAT) && (var2->type == INT || var2->type == FLOAT)) {
+		if (var1->type == INT) {
+			if (var2->type == INT) {
+				retVal.data.b = var1->data.i > var2->data.i;
+			}
+			else {
+				retVal.data.b = float(var1->data.i) > var2->data.f;
+			}
+		}
+		else {
+			if (var2->type == INT) {
+				retVal.data.b = var1->data.f > float(var2->data.i);
+			}
+			else {
+				retVal.data.b = var1->data.f > var2->data.f;
+			}
+		}
+	}
+	else if (var1->type == STRING && var2->type == STRING) {
+		retVal.data.b = *var1->data.str > *var2->data.str;
+	}
+	else {
+		// ERROR: can't add bad types
+		throw invalid_argument("variable::greater(): can't compare " + var1->getType() + " and " + var2->getType());
+	}
+
+	return retVal;
+}
+
+variable variable::less(variable *var1, variable *var2)
+{
+	variable retVal;
+	retVal.op = OPERAND;
+	retVal.type = BOOL;
+	if ((var1->type == INT || var1->type == FLOAT) && (var2->type == INT || var2->type == FLOAT)) {
+		if (var1->type == INT) {
+			if (var2->type == INT) {
+				retVal.data.b = var1->data.i < var2->data.i;
+			}
+			else {
+				retVal.data.b = float(var1->data.i) < var2->data.f;
+			}
+		}
+		else {
+			if (var2->type == INT) {
+				retVal.data.b = var1->data.f < float(var2->data.i);
+			}
+			else {
+				retVal.data.b = var1->data.f < var2->data.f;
+			}
+		}
+	}
+	else if (var1->type == STRING && var2->type == STRING) {
+		retVal.data.b = *var1->data.str < *var2->data.str;
+	}
+	else {
+		// ERROR: can't add bad types
+		throw invalid_argument("variable::less(): can't compare " + var1->getType() + " and " + var2->getType());
+	}
+
+	return retVal;
+}
+
+variable variable::equal(variable *var1, variable *var2)
+{
+	variable retVal;
+	retVal.op = OPERAND;
+	retVal.type = BOOL;
+	if ((var1->type == INT || var1->type == FLOAT) && (var2->type == INT || var2->type == FLOAT)) {
+		if (var1->type == INT) {
+			if (var2->type == INT) {
+				retVal.data.b = var1->data.i == var2->data.i;
+			}
+			else {
+				retVal.data.b = float(var1->data.i) == var2->data.f;
+			}
+		}
+		else {
+			if (var2->type == INT) {
+				retVal.data.b = var1->data.f == float(var2->data.i);
+			}
+			else {
+				retVal.data.b = var1->data.f == var2->data.f;
+			}
+		}
+	}
+	else if (var1->type == STRING && var2->type == STRING) {
+		retVal.data.b = *var1->data.str == *var2->data.str;
+	}
+	else {
+		// ERROR: can't add bad types
+		throw invalid_argument("variable::equal(): can't compare " + var1->getType() + " and " + var2->getType());
 	}
 
 	return retVal;

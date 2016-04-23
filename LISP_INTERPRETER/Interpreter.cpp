@@ -8,6 +8,7 @@
  */
 
 #include <iostream>
+#include <fstream>
 #include <list>
 #include <unordered_map>
 #include <string>
@@ -19,6 +20,12 @@ unordered_map<string, variable> globalVars;
 
 int main()
 {
+	ofstream outFile;
+	outFile.open("output.txt");
+	if (!outFile.is_open()) {
+		cout << "Warning: \"output.txt\" could not be opened, no output file will be written" << endl;
+	}
+
     while(1) {
     	cout << "Prompt> ";
     	string input;
@@ -32,17 +39,23 @@ int main()
 		}
 
     	expression *exp = NULL;
+		string result = "None";
 		try{
 			exp = new expression(input, &globalVars);
-			cout << exp->evaluate().toString() << endl;
+			result = exp->evaluate().toString();
 		}
 		catch (exception &e) {
-			cout << "ERROR: " << e.what() << endl;
+			result = "ERROR: " + (string)e.what();
 		}
 		if (exp) {
-			delete exp; //TODO: find way to not delete functions
+			delete exp;
+		}
+		cout << result << endl;
+		if (outFile.is_open()) {
+			outFile << result << endl;
 		}
 	}
     
+	outFile.close();
     return 0;
 }

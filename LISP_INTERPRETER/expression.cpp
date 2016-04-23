@@ -74,7 +74,7 @@ string expression::paren_chunk(string input, unsigned *index)
 {
     unsigned lparen = 1;
     if(input[0] != '(') {
-		throw invalid_argument("paren_chunk(): no opening parenthesis\n");// in \"" + input + "\"\n");
+		throw invalid_argument("paren_chunk(): no opening parenthesis");
     }
     
     for(unsigned i = 1; i < input.size(); i++) {
@@ -88,7 +88,7 @@ string expression::paren_chunk(string input, unsigned *index)
             return input.substr(1, i - 1);
         }
 	}
-	throw invalid_argument("paren_chunk(): no closing parenthesis\n");// in \"" + input + "\"\n");
+	throw invalid_argument("paren_chunk(): no closing parenthesis");
 }
 
 //grabs that variable chunk, increments index
@@ -108,6 +108,11 @@ string expression::var_chunk(string input, unsigned *index)
 variable expression::evaluate(void)
 {
     if(exps.size() == 0) {
+		if (finalVar.isFunction()) {
+			expression tmpExp(finalVar.getFuncString(), globalVars);
+			variable tmpVar = tmpExp.evaluate();
+			return tmpVar;
+		}
         return finalVar;
     }
     
@@ -116,30 +121,37 @@ variable expression::evaluate(void)
     int size = 0;
     for(list<expression *>::reverse_iterator rit = exps.rbegin(); rit != exps.rend(); rit++) {
         vars[size] = (*rit)->evaluate();
-        size++;
+		if (vars[size].isFunction()) {
+			expression tmpExp(vars[size].getFuncString(), globalVars);
+			vars[size] = tmpExp.evaluate();
+		}
+		if (!vars[size].isNil()) { // only add to the stack if it isn't NIL
+			size++;
+		}
     }
     //have array of variables (ex: 5 10 3 + +)
-    
-    int i = 0;
-    while(size > 1) {
-        // get to operator
-        while(i < size && !vars[i].isOperator()) {
-            i++;
-        }
-        if(i == size) {
-            // not enough operators for operands
-            throw invalid_argument("expression::evaluate(): not enough operators\n");
-        } else if(i < 2) {
-            // not enough operands for operation
-            throw invalid_argument("expression::evaluate(): not enough operands\n");
-        } else {
-            vars[i-2] = vars[i].operate(vars[i-1], vars[i-2]);
-            memmove(&vars[i - 1], &vars[i + 1], (size - i) * sizeof(variable));
-            i--;
-            size -= 2;
-        }
-    }
 
+
+    int i = 0;
+	while (size > 1) {
+		while (i < size && !vars[i].isOperator()) {
+			i++;
+		}
+		if (i == size) {
+			// not enough operators for operands
+			throw invalid_argument("expression::evaluate(): not enough operators");
+		}
+		else if (i < 2) {
+			// not enough operands for operation
+			throw invalid_argument("expression::evaluate(): not enough operands");
+		}
+		else {
+			vars[i - 2] = vars[i].operate(vars[i - 1], vars[i - 2]);
+			memmove(&vars[i - 1], &vars[i + 1], (size - i) * sizeof(variable));
+			i--;
+			size -= 2;
+		}
+	}
 	variable tmp = vars[0];
 	delete vars;
 	return tmp;
@@ -152,27 +164,69 @@ bool expression::special_exp(string input, unsigned *index)
     if(command == "quote") {
         if((ind = input.find('(')) != string::npos) {
             string strChunk = paren_chunk(input.substr(ind), &ind);
-            variable tmpVar(strChunk, true);
+            variable tmpVar(strChunk, true, false);
             exps.push_back(new expression(tmpVar, globalVars));
             *index += ind;
         } else {
-            throw invalid_argument("expression::special_exp(): quote needs parenthesized expression\n");
-			//return false;
+            throw invalid_argument("expression::special_exp(): quote needs parenthesized expression");
         }
     } else if(command == "if") {
-         
+		string conditional;
+		string conseq;
+		string alt;
+		//conditional
+		if ((ind = input.find('(')) != string::npos) {
+			conditional = paren_chunk(input.substr(ind), &ind);
+		}
+		else {
+			throw invalid_argument("expression::special_exp(): if needs parenthesized conditional");
+		}
+		//conseq
+		while (ind < input.size() && input[ind] != '(') { ind++; }
+		if (ind != input.size()) {
+			conseq = paren_chunk(input.substr(ind), &ind);
+		} 
+		else {
+			throw invalid_argument("expression::special_exp(): if needs parenthesized conseq");
+		}
+		//alt
+		while (ind < input.size() && input[ind] != '(') { ind++; }
+		if (ind != input.size()) {
+			alt = paren_chunk(input.substr(ind), &ind);
+		}
+		else {
+			throw invalid_argument("expression::special_exp(): if needs parenthesized alt");
+		}
+		//add resulting expression to list
+		expression tmpExp(conditional, globalVars);
+		variable tmpVar = tmpExp.evaluate();
+		if (tmpVar.getType() == "BOOL") {
+			if (tmpVar.toString() == "true") {
+				exps.push_back(new expression(conseq, globalVars));
+			}
+			else {
+				exps.push_back(new expression(alt, globalVars));
+			}
+		}
+		else {
+			throw invalid_argument("expression::special_exp(): if must have valid conditional");
+		}
+		*index += ind;
     } else if(command == "define") {
 		//name of new variable
 		while (ind < input.size() && isspace(input[ind])) { ind++; }
 		if (ind == input.size()) {
-			throw invalid_argument("expression::special_exp(): define needs a variable name\n");
+			throw invalid_argument("expression::special_exp(): define needs a variable name");
 		}
 		string varName = var_chunk(input.substr(ind), &ind);
+		if (varName.size() == 0) {
+			throw invalid_argument("expression::special_exp(): define needs a variable name");
+		}
 
 		//expression to assign to new variable
 		while (ind < input.size() && isspace(input[ind])) { ind++; }
 		if (ind == input.size()) {
-			throw invalid_argument("expression::special_exp(): define needs an expression to assign\n");
+			throw invalid_argument("expression::special_exp(): define needs an expression to assign");
 		}
 		string expChunk;
 		variable value;
@@ -189,20 +243,20 @@ bool expression::special_exp(string input, unsigned *index)
 
 		//set variable in globalList and add to current expression
 		(*globalVars)[varName] = value;
-		exps.push_back(new expression(value, globalVars));
+		//exps.push_back(new expression(value, globalVars));
 		*index += ind;
     } else if(command == "set!") {
 		//name of variable
 		while (ind < input.size() && isspace(input[ind])) { ind++; }
 		if (ind == input.size()) {
-			throw invalid_argument("expression::special_exp(): set! needs a variable name\n");
+			throw invalid_argument("expression::special_exp(): set! needs a variable name");
 		}
 		string varName = var_chunk(input.substr(ind), &ind);
 
 		//expression to assign to variable
 		while (ind < input.size() && isspace(input[ind])) { ind++; }
 		if (ind == input.size()) {
-			throw invalid_argument("expression::special_exp(): set! needs an expression to assign\n");
+			throw invalid_argument("expression::special_exp(): set! needs an expression to assign");
 		}
 		string expChunk;
 		variable value;
@@ -219,14 +273,32 @@ bool expression::special_exp(string input, unsigned *index)
 
 		if ((*globalVars).count(varName)) { //variable exists
 			(*globalVars)[varName] = value;
-			exps.push_back(new expression(value, globalVars));
+			//exps.push_back(new expression(value, globalVars));
 			*index += ind;
 		}
 		else {
-			throw invalid_argument("expression::special_exp(): set! variable \"" + varName + "\" does not exist\n");
+			throw invalid_argument("expression::special_exp(): set! variable \"" + varName + "\" does not exist");
 		}
     } else if(command == "lambda") {
-        
+		//name of new function
+		while (ind < input.size() && isspace(input[ind])) { ind++; }
+		if (ind == input.size()) {
+			throw invalid_argument("expression::special_exp(): lambda needs a function name");
+		}
+		string funcName = var_chunk(input.substr(ind), &ind);
+		if (funcName.size() == 0) {
+			throw invalid_argument("expression::special_exp(): lambda needs a function name");
+		}
+
+		while (ind < input.size() && input[ind] != '(') { ind++; }
+		if (ind == input.size()) {
+			throw invalid_argument("expression::special_exp(): lambda needs a parenthesized function body");
+		}
+		string funcBody = paren_chunk(input.substr(ind), &ind);
+		variable tmpVar(funcBody, false, true);
+
+		(*globalVars)[funcName] = tmpVar;
+		*index += ind;
     } else {
         return false;
     }

@@ -10,7 +10,7 @@
 #include <iostream>
 #include <list>
 #include <unordered_map>
-#include <string>
+#include <cstring>
 #include <cctype>
 #include <stdexcept>
 #include "variable.hpp"
