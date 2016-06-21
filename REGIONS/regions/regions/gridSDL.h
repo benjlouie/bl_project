@@ -2,6 +2,7 @@
 #include <thread>
 #include <SDL2/SDL.h>
 
+
 using namespace std;
 
 struct Color
@@ -23,7 +24,7 @@ private:
 	unsigned columns;
 	unsigned rectWidth;
 	unsigned rectHeight;
-	unsigned outlinePx = 3;
+	unsigned outlinePx = 2;
 	Color background;
 
 	void EventHandler(void);

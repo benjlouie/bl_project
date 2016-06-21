@@ -1,1 +1,4 @@
 SDL2-devel-2.0.4-VC
+*.log
+*.tlog
+*.opensdf

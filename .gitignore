@@ -5,3 +5,5 @@
 *.win
 *.layout
 *.pdf
+*.log
+*.tlog

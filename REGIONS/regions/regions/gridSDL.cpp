@@ -7,7 +7,6 @@ Grid::Grid(unsigned width, unsigned height, unsigned rows, unsigned columns)
 	this->rows = rows;
 	this->columns = columns;
 	
-	// one pixel between each rectangle
 	rectWidth = (width - outlinePx * (columns - 1)) / columns;
 	rectHeight = (height - outlinePx * (rows - 1)) / rows;
 
@@ -19,7 +18,10 @@ Grid::Grid(unsigned width, unsigned height, unsigned rows, unsigned columns)
 		SDL_InitSubSystem(SDL_INIT_VIDEO);
 	}
 	//TODO: add method for changing window name
-	window = SDL_CreateWindow("Grid", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, NULL);
+	window = SDL_CreateWindow("Grid"
+		, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED
+		, width, height
+		, SDL_WINDOW_RESIZABLE);
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
 	//init each elm with a color
@@ -82,8 +84,8 @@ void Grid::Render(void)
 			SDL_Rect rect;
 			rect.h = rectHeight;
 			rect.w = rectWidth;
-			rect.x = rectWidth * col + outlinePx * col;
-			rect.y = rectHeight * row + outlinePx * row;
+			rect.x = rectWidth * col + outlinePx * col + outlinePx / 2;
+			rect.y = rectHeight * row + outlinePx * row + outlinePx / 2;
 
 			SDL_SetRenderDrawColor(renderer, r, g, b, a);
 			SDL_RenderFillRect(renderer, &rect);
@@ -104,11 +106,24 @@ void Grid::close(void)
 
 void Grid::EventHandler(void)
 {
+	bool turnOn = true;
+
 	while (true) {
 		SDL_Event event;
 		while (SDL_PollEvent(&event)) {
 			if (event.type == SDL_QUIT) {
 				return;
+			}
+			else if (event.type == SDL_WINDOWEVENT) {
+				switch (event.window.event) {
+				//case SDL_WINDOWEVENT_SIZE_CHANGED:
+				case SDL_WINDOWEVENT_RESIZED:
+					width = event.window.data1;
+					height = event.window.data2;
+					rectWidth = (width - outlinePx * (columns - 1)) / columns;
+					rectHeight = (height - outlinePx * (rows - 1)) / rows;
+				}
+				this->Render();
 			}
 			else if (event.button.button == SDL_BUTTON_LEFT) {
 				unsigned x, y;
@@ -117,12 +132,30 @@ void Grid::EventHandler(void)
 				y = event.button.y;
 				row = y / (rectHeight + outlinePx);
 				col = x / (rectWidth + outlinePx);
-				grid[row][col] = Color{ 100, 255, 100, 255 };
+				if (row < rows && col < columns) {
+					Color curr = grid[row][col];
+					if (curr.r == 100 && curr.g == 255 && curr.b == 100) {
+						if (event.button.state == SDL_PRESSED) {
+							turnOn = false;
+						}
+						if (!turnOn) {
+							grid[row][col] = Color{ 255, 255, 255, 255 };
+						}
+					}
+					else {
+						if (event.button.state == SDL_PRESSED) {
+							turnOn = true;
+						}
+						if (turnOn) {
+							grid[row][col] = Color{ 100, 255, 100, 255 };
+						}
+					}
+				}
 				this->Render();
 			}
 		}
 
 
-		SDL_Delay(16); // ~30 updates per sec
+		SDL_Delay(16); // ~60 updates per second
 	}
 }
