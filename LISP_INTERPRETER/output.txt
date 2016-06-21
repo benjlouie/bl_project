@@ -1,0 +1,8 @@
+NIL
+ERROR: expression::evaluate(): not enough operators
+NIL
+6
+NIL
+3628800
+NIL
+120

@@ -153,7 +153,7 @@ struct jps_node *jps_path(struct field *map, struct coord start, struct coord en
 {
     struct coord adjOffset[8] = {{-1,-1}, {-1, 0}, {-1, 1}, {0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}};
     bl_heap *openList = bl_heap_new(10, astar_priority);  // priority queue of expanded nodes
-    bl_hashtabls *nodeList = bl_hashtable_new(100);       // table of all expanded nodes
+    bl_hashtable *nodeList = bl_hashtable_new(100);       // table of all expanded nodes
     
     // init start node and have it go in all directions
     struct jps_node *node = malloc(sizeof(struct jps_node));
@@ -175,11 +175,11 @@ struct jps_node *jps_path(struct field *map, struct coord start, struct coord en
         int chX = node->cur.x + adjOffset[node->direction].x;
         int chY = node->cur.y + adjOffset[node->direction].y;
         if(node->direction % 2 == 0) { // diagonal
-            
+            ;
         } else { // horizontal
             // go until there is wall on left of right
-            struct coord left = adjOffset[(node->direction - 2) % 8]
-            struct coord right = adjOffset[(node->direction + 2) % 8]
+            struct coord left = adjOffset[(node->direction - 2) % 8];
+            struct coord right = adjOffset[(node->direction + 2) % 8];
             left.x += node->cur.x;
             left.y += node->cur.y;
             right.x += node->cur.x;
