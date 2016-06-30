@@ -81,7 +81,15 @@ void Grid::SetAll(SDL_Color color)
 	}
 }
 
-Grid::Cell Grid::cellFromCoordinate(int xCoordinate, int yCoordinate)
+SDL_Color Grid::getCellColor(Grid::Cell cell)
+{
+	if (cell.row < rows && cell.col < columns) {
+		return grid[cell.row][cell.col];
+	}
+	return SDL_Color{ 0, 0, 0, SDL_ALPHA_TRANSPARENT }; //TODO: add error somewhere to show this
+}
+
+Grid::Cell Grid::getCellFromCoordinate(int xCoordinate, int yCoordinate)
 {
 	unsigned row, col;
 	row = yCoordinate / (rectHeight + outlinePx);

@@ -18,7 +18,8 @@ public:
 	void SetRow(unsigned row, SDL_Color color);
 	void SetColumn(unsigned column, SDL_Color color);
 	void SetAll(SDL_Color color);
-	Cell cellFromCoordinate(int xCoordinate, int yCoordinate);
+	SDL_Color getCellColor(Cell cell);
+	Cell getCellFromCoordinate(int xCoordinate, int yCoordinate);
 	void Render(void);
 	void Close(void);
 
