@@ -1,9 +1,9 @@
 #include "gridSDL.h"
 
-Grid::Grid(unsigned width, unsigned height, unsigned rows, unsigned columns)
+Grid::Grid(unsigned window_width, unsigned window_height, unsigned rows, unsigned columns)
 {
-	this->width = width;
-	this->height = height;
+	this->width = window_width;
+	this->height = window_height;
 	this->rows = rows;
 	this->columns = columns;
 	
@@ -25,42 +25,54 @@ Grid::Grid(unsigned width, unsigned height, unsigned rows, unsigned columns)
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
 	//init each elm with a color
-	grid = new Color* [rows];
+	grid = new SDL_Color*[rows];
 	for (unsigned i = 0; i < rows; i++) {
-		grid[i] = new Color[columns];
-		memset(grid[i], 255, sizeof(Color) * columns); //default to white
+		grid[i] = new SDL_Color[columns];
+		memset(grid[i], 255, sizeof(SDL_Color) * columns); //default to white
 	}
 
-	//start event handler
+	renderAll = true;
 	Render();
-	EventHandler();
+	//TODO: set up event handler in main somehow
+	//EventHandler();
 }
 
-void Grid::SetBackground(Color color)
+void Grid::SetBackground(SDL_Color color)
 {
 	background = color;
 }
 
-void Grid::SetColor(unsigned row, unsigned col, Color color)
+void Grid::SetCell(Cell cell, SDL_Color color)
 {
-	grid[row][col] = color;
-}
-
-void Grid::SetRow(unsigned row, Color color)
-{
-	for (unsigned i = 0; i < rows; i++) {
-		grid[row][i] = color;
+	unsigned row = cell.row;
+	unsigned col = cell.col;
+	if (row < rows && col < columns) {
+		grid[row][col] = color;
+		changedCells.push_back(Cell{ row, col });
 	}
 }
 
-void Grid::SetColumn(unsigned column, Color color)
+void Grid::SetRow(unsigned row, SDL_Color color)
 {
-	for (unsigned i = 0; i < rows; i++) {
-		grid[i][column] = color;
+	if (row < rows) {
+		for (unsigned i = 0; i < rows; i++) {
+			grid[row][i] = color;
+		}
+		changedRows.push_back(row);
 	}
 }
 
-void Grid::SetAll(Color color)
+void Grid::SetColumn(unsigned column, SDL_Color color)
+{
+	if (column < columns) {
+		for (unsigned i = 0; i < rows; i++) {
+			grid[i][column] = color;
+		}
+		changedRows.push_back(column);
+	}
+}
+
+void Grid::SetAll(SDL_Color color)
 {
 	for (unsigned r = 0; r < rows; r++) {
 		for (unsigned c = 0; c < columns; c++) {
@@ -69,7 +81,52 @@ void Grid::SetAll(Color color)
 	}
 }
 
+Grid::Cell Grid::cellFromCoordinate(int xCoordinate, int yCoordinate)
+{
+	unsigned row, col;
+	row = yCoordinate / (rectHeight + outlinePx);
+	col = xCoordinate / (rectWidth + outlinePx);
+	return Cell{ row, col };
+}
+
 void Grid::Render(void)
+{
+	//account for window resizes
+	int w, h;
+	SDL_GetWindowSize(window, &w, &h);
+	if (w != width || h != height) {
+		width = w;
+		height = h;
+		renderAll = true;
+		rectWidth = (width - outlinePx * (columns - 1)) / columns;
+		rectHeight = (height - outlinePx * (rows - 1)) / rows;
+	}
+
+	if (renderAll) {
+		RenderAll();
+		SDL_RenderPresent(renderer);
+		renderAll = false;
+		return;
+	}
+
+	for (unsigned row : changedRows) {
+		RenderRow(row);
+	}
+	changedRows.clear();
+	for (unsigned col : changedColumns) {
+		RenderColumn(col);
+	}
+	changedColumns.clear();
+	for (Cell cell : changedCells) {
+		RenderCell(cell);
+	}
+	changedCells.clear();
+
+	SDL_RenderPresent(renderer);
+}
+
+//TODO: make it only render the changed cells, or all of them (maybe have renderAll() function?)
+void Grid::RenderAll(void)
 {
 	SDL_SetRenderDrawColor(renderer, background.r, background.g, background.b, background.a);
 	SDL_RenderClear(renderer);
@@ -91,19 +148,77 @@ void Grid::Render(void)
 			SDL_RenderFillRect(renderer, &rect);
 		}
 	}
-	SDL_RenderPresent(renderer);
 }
 
-void Grid::close(void)
+void Grid::RenderCell(Cell cell)
+{
+	unsigned row = cell.row;
+	unsigned col = cell.col;
+	Uint8 r, g, b, a;
+	r = grid[row][col].r;
+	g = grid[row][col].g;
+	b = grid[row][col].b;
+	a = grid[row][col].a;
+	SDL_Rect rect;
+	rect.h = rectHeight;
+	rect.w = rectWidth;
+	rect.x = rectWidth * col + outlinePx * col + outlinePx / 2;
+	rect.y = rectHeight * row + outlinePx * row + outlinePx / 2;
+
+	SDL_SetRenderDrawColor(renderer, r, g, b, a);
+	SDL_RenderFillRect(renderer, &rect);
+}
+
+void Grid::RenderRow(unsigned row)
+{
+	for (unsigned col = 0; col < columns; col++) {
+		Uint8 r, g, b, a;
+		r = grid[row][col].r;
+		g = grid[row][col].g;
+		b = grid[row][col].b;
+		a = grid[row][col].a;
+		SDL_Rect rect;
+		rect.h = rectHeight;
+		rect.w = rectWidth;
+		rect.x = rectWidth * col + outlinePx * col + outlinePx / 2;
+		rect.y = rectHeight * row + outlinePx * row + outlinePx / 2;
+
+		SDL_SetRenderDrawColor(renderer, r, g, b, a);
+		SDL_RenderFillRect(renderer, &rect);
+	}
+}
+
+void Grid::RenderColumn(unsigned col)
+{
+	for (unsigned row = 0; row < rows; row++) {
+		Uint8 r, g, b, a;
+		r = grid[row][col].r;
+		g = grid[row][col].g;
+		b = grid[row][col].b;
+		a = grid[row][col].a;
+		SDL_Rect rect;
+		rect.h = rectHeight;
+		rect.w = rectWidth;
+		rect.x = rectWidth * col + outlinePx * col + outlinePx / 2;
+		rect.y = rectHeight * row + outlinePx * row + outlinePx / 2;
+
+		SDL_SetRenderDrawColor(renderer, r, g, b, a);
+		SDL_RenderFillRect(renderer, &rect);
+	}
+}
+
+void Grid::Close(void)
 {
 	SDL_DestroyWindow(window);
 
-	for (unsigned c = 0; c < columns; c++) {
-		delete[] grid[c];
+	for (unsigned r = 0; r < rows; r++) {
+		delete[] grid[r];
 	}
 	delete[] grid;
 }
 
+//TODO: redo or delete
+/*
 void Grid::EventHandler(void)
 {
 	bool turnOn = true;
@@ -133,13 +248,13 @@ void Grid::EventHandler(void)
 				row = y / (rectHeight + outlinePx);
 				col = x / (rectWidth + outlinePx);
 				if (row < rows && col < columns) {
-					Color curr = grid[row][col];
+					SDL_Color curr = grid[row][col];
 					if (curr.r == 100 && curr.g == 255 && curr.b == 100) {
 						if (event.button.state == SDL_PRESSED) {
 							turnOn = false;
 						}
 						if (!turnOn) {
-							grid[row][col] = Color{ 255, 255, 255, 255 };
+							grid[row][col] = SDL_Color{ 255, 255, 255, 255 };
 						}
 					}
 					else {
@@ -147,7 +262,7 @@ void Grid::EventHandler(void)
 							turnOn = true;
 						}
 						if (turnOn) {
-							grid[row][col] = Color{ 100, 255, 100, 255 };
+							grid[row][col] = SDL_Color{ 100, 255, 100, 255 };
 						}
 					}
 				}
@@ -155,7 +270,7 @@ void Grid::EventHandler(void)
 			}
 		}
 
-
 		SDL_Delay(16); // ~60 updates per second
 	}
 }
+*/
