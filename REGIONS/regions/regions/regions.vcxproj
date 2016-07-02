@@ -70,10 +70,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="gridSDL.cpp" />
+    <ClCompile Include="RegionMap.cpp" />
     <ClCompile Include="regionsMain.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="gridSDL.h" />
+    <ClInclude Include="RegionMap.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

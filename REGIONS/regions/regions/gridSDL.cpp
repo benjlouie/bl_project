@@ -33,8 +33,6 @@ Grid::Grid(unsigned window_width, unsigned window_height, unsigned rows, unsigne
 
 	renderAll = true;
 	Render();
-	//TODO: set up event handler in main somehow
-	//EventHandler();
 }
 
 void Grid::SetBackground(SDL_Color color)
@@ -68,7 +66,7 @@ void Grid::SetColumn(unsigned column, SDL_Color color)
 		for (unsigned i = 0; i < rows; i++) {
 			grid[i][column] = color;
 		}
-		changedRows.push_back(column);
+		changedColumns.push_back(column);
 	}
 }
 
@@ -81,7 +79,7 @@ void Grid::SetAll(SDL_Color color)
 	}
 }
 
-SDL_Color Grid::getCellColor(Grid::Cell cell)
+SDL_Color Grid::GetCellColor(Cell cell)
 {
 	if (cell.row < rows && cell.col < columns) {
 		return grid[cell.row][cell.col];
@@ -89,7 +87,7 @@ SDL_Color Grid::getCellColor(Grid::Cell cell)
 	return SDL_Color{ 0, 0, 0, SDL_ALPHA_TRANSPARENT }; //TODO: add error somewhere to show this
 }
 
-Grid::Cell Grid::getCellFromCoordinate(int xCoordinate, int yCoordinate)
+Grid::Cell Grid::GetCellFromCoordinate(int xCoordinate, int yCoordinate)
 {
 	unsigned row, col;
 	row = yCoordinate / (rectHeight + outlinePx);
@@ -133,7 +131,6 @@ void Grid::Render(void)
 	SDL_RenderPresent(renderer);
 }
 
-//TODO: make it only render the changed cells, or all of them (maybe have renderAll() function?)
 void Grid::RenderAll(void)
 {
 	SDL_SetRenderDrawColor(renderer, background.r, background.g, background.b, background.a);
@@ -215,7 +212,7 @@ void Grid::RenderColumn(unsigned col)
 	}
 }
 
-void Grid::Close(void)
+Grid::~Grid(void)
 {
 	SDL_DestroyWindow(window);
 
@@ -224,61 +221,3 @@ void Grid::Close(void)
 	}
 	delete[] grid;
 }
-
-//TODO: redo or delete
-/*
-void Grid::EventHandler(void)
-{
-	bool turnOn = true;
-
-	while (true) {
-		SDL_Event event;
-		while (SDL_PollEvent(&event)) {
-			if (event.type == SDL_QUIT) {
-				return;
-			}
-			else if (event.type == SDL_WINDOWEVENT) {
-				switch (event.window.event) {
-				//case SDL_WINDOWEVENT_SIZE_CHANGED:
-				case SDL_WINDOWEVENT_RESIZED:
-					width = event.window.data1;
-					height = event.window.data2;
-					rectWidth = (width - outlinePx * (columns - 1)) / columns;
-					rectHeight = (height - outlinePx * (rows - 1)) / rows;
-				}
-				this->Render();
-			}
-			else if (event.button.button == SDL_BUTTON_LEFT) {
-				unsigned x, y;
-				unsigned row, col;
-				x = event.button.x;
-				y = event.button.y;
-				row = y / (rectHeight + outlinePx);
-				col = x / (rectWidth + outlinePx);
-				if (row < rows && col < columns) {
-					SDL_Color curr = grid[row][col];
-					if (curr.r == 100 && curr.g == 255 && curr.b == 100) {
-						if (event.button.state == SDL_PRESSED) {
-							turnOn = false;
-						}
-						if (!turnOn) {
-							grid[row][col] = SDL_Color{ 255, 255, 255, 255 };
-						}
-					}
-					else {
-						if (event.button.state == SDL_PRESSED) {
-							turnOn = true;
-						}
-						if (turnOn) {
-							grid[row][col] = SDL_Color{ 100, 255, 100, 255 };
-						}
-					}
-				}
-				this->Render();
-			}
-		}
-
-		SDL_Delay(16); // ~60 updates per second
-	}
-}
-*/

@@ -18,10 +18,10 @@ public:
 	void SetRow(unsigned row, SDL_Color color);
 	void SetColumn(unsigned column, SDL_Color color);
 	void SetAll(SDL_Color color);
-	SDL_Color getCellColor(Cell cell);
-	Cell getCellFromCoordinate(int xCoordinate, int yCoordinate);
+	SDL_Color GetCellColor(Cell cell);
+	Cell GetCellFromCoordinate(int xCoordinate, int yCoordinate);
 	void Render(void);
-	void Close(void);
+	~Grid(void);
 
 private:
 	SDL_Window *window;
@@ -44,5 +44,4 @@ private:
 	void RenderCell(Cell cell);
 	void RenderRow(unsigned row);
 	void RenderColumn(unsigned col);
-	//void EventHandler(void);
 };
