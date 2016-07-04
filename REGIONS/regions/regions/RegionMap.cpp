@@ -2,10 +2,11 @@
 
 #define UNSET_OBSTACLE -1
 
-RegionMap::RegionMap(unsigned rows, unsigned cols)
+RegionMap::RegionMap(unsigned rows, unsigned cols, bool diagObstacles)
 {
 	rows_ = rows;
 	cols_ = cols;
+	diagonalObstacles_ = diagObstacles;
 	numObstacles_ = 0;
 
 	map_ = new CellData*[rows];
@@ -56,7 +57,7 @@ void RegionMap::IdentifyObstacles(void)
 void RegionMap::MarkObstacle(Cell startCell)
 {
 	//TODO: make options for if diagonals still connect
-	int adjOffset[4][2] = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } };
+	int adjOffset[8][2] = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 }, { 1, 1 }, { 1, -1 }, { -1, -1 }, { -1, 1 } };
 	std::queue<Cell> visited;
 
 	map_[startCell.row][startCell.col].obstacleGroupID = numObstacles_;
@@ -64,20 +65,49 @@ void RegionMap::MarkObstacle(Cell startCell)
 	while (visited.size() > 0) {
 		Cell curr = visited.front();
 		visited.pop();
-		for (unsigned i = 0; i < 4; i++) {
-			int nextRow = curr.row + adjOffset[i][0];
-			int nextCol = curr.col + adjOffset[i][1];
-			CellData *nextCell = &map_[nextRow][nextCol];
 
-			if (nextCell->open || nextCell->obstacleGroupID != UNSET_OBSTACLE
-				|| (nextRow < 0 || nextRow > rows_)
-				|| (nextCol < 0 || nextCol > cols_)
-				) {
-				continue; //cell not part of obstacle or already ID'd, or out of bounds
+		unsigned numAdj;
+		if (diagonalObstacles_) {
+			numAdj = 8;
+		}
+		else {
+			numAdj = 4;
+		}
+
+		for (unsigned i = 0; i < numAdj; i++) {
+			unsigned nextRow = curr.row + adjOffset[i][0];
+			unsigned nextCol = curr.col + adjOffset[i][1];
+			CellData *nextCell;
+
+			//TODO: could probably simplify by not checking < 0 (because unsigned overflow)
+			if ((nextRow < 0 || nextRow >= rows_) || (nextCol < 0 || nextCol >= cols_)) {
+				continue;
+			}
+			nextCell = &map_[nextRow][nextCol];
+			if (nextCell->open || nextCell->obstacleGroupID != UNSET_OBSTACLE) {
+				continue; //cell not part of obstacle or already ID'd
 			}
 			nextCell->obstacleGroupID = numObstacles_;
 			visited.push(Cell{ nextRow, nextCol });
 		}
+	}
+}
+
+void RegionMap::ClearObstacleData(void)
+{
+	for (unsigned r = 0; r < rows_; r++) {
+		for (unsigned c = 0; c < cols_; c++) {
+			map_[r][c].obstacleGroupID = UNSET_OBSTACLE;
+		}
+	}
+	numObstacles_ = 0;
+}
+
+void RegionMap::AllowDiagonalObstacles(bool diags)
+{
+	if (diags != diagonalObstacles_) {
+		diagonalObstacles_ = diags;
+		ClearObstacleData();
 	}
 }
 

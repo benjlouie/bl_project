@@ -1,11 +1,12 @@
 #include "gridSDL.h"
 
-Grid::Grid(unsigned window_width, unsigned window_height, unsigned rows, unsigned columns)
+Grid::Grid(unsigned window_width, unsigned window_height, unsigned rows, unsigned columns, unsigned outlinePx)
 {
 	this->width = window_width;
 	this->height = window_height;
 	this->rows = rows;
 	this->columns = columns;
+	this->outlinePx = outlinePx;
 	
 	rectWidth = (width - outlinePx * (columns - 1)) / columns;
 	rectHeight = (height - outlinePx * (rows - 1)) / rows;
@@ -38,6 +39,13 @@ Grid::Grid(unsigned window_width, unsigned window_height, unsigned rows, unsigne
 void Grid::SetBackground(SDL_Color color)
 {
 	background = color;
+	renderAll = true;
+}
+
+void Grid::SetOutlinePx(unsigned outlinePx)
+{
+	this->outlinePx = outlinePx;
+	renderAll = true;
 }
 
 void Grid::SetCell(Cell cell, SDL_Color color)
@@ -53,8 +61,8 @@ void Grid::SetCell(Cell cell, SDL_Color color)
 void Grid::SetRow(unsigned row, SDL_Color color)
 {
 	if (row < rows) {
-		for (unsigned i = 0; i < rows; i++) {
-			grid[row][i] = color;
+		for (unsigned c = 0; c < columns; c++) {
+			grid[row][c] = color;
 		}
 		changedRows.push_back(row);
 	}
@@ -63,8 +71,8 @@ void Grid::SetRow(unsigned row, SDL_Color color)
 void Grid::SetColumn(unsigned column, SDL_Color color)
 {
 	if (column < columns) {
-		for (unsigned i = 0; i < rows; i++) {
-			grid[i][column] = color;
+		for (unsigned r = 0; r < rows; r++) {
+			grid[r][column] = color;
 		}
 		changedColumns.push_back(column);
 	}
@@ -214,6 +222,7 @@ void Grid::RenderColumn(unsigned col)
 
 Grid::~Grid(void)
 {
+	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
 
 	for (unsigned r = 0; r < rows; r++) {

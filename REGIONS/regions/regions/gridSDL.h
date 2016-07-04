@@ -1,5 +1,3 @@
-#include <iostream>
-#include <thread>
 #include <vector>
 #include <SDL2/SDL.h>
 
@@ -12,8 +10,9 @@ public:
 		unsigned row, col;
 	};
 
-	Grid(unsigned window_width, unsigned window_height, unsigned rows, unsigned columns);
+	Grid(unsigned window_width, unsigned window_height, unsigned rows, unsigned columns, unsigned outlinePx = 0);
 	void SetBackground(SDL_Color color);
+	void SetOutlinePx(unsigned outlinePx);
 	void SetCell(Cell cell, SDL_Color color);
 	void SetRow(unsigned row, SDL_Color color);
 	void SetColumn(unsigned column, SDL_Color color);
@@ -37,7 +36,7 @@ private:
 	unsigned columns;
 	unsigned rectWidth;
 	unsigned rectHeight;
-	unsigned outlinePx = 1;
+	unsigned outlinePx;
 	SDL_Color background;
 
 	void RenderAll(void);
