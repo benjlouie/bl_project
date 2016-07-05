@@ -1,4 +1,6 @@
 #include <queue>
+#include <unordered_map>
+#include <string>
 
 class RegionMap {
 public:
@@ -8,6 +10,7 @@ public:
 	struct CellData {
 		bool open;
 		int obstacleGroupID;
+		bool corner;
 		void *userData;
 	};
 
@@ -19,6 +22,7 @@ public:
 	void IdentifyObstacles(void);
 	void ClearObstacleData(void);
 	void AllowDiagonalObstacles(bool diags);
+	void IdentifyCorners(void);
 	CellData GetCellData(Cell cell);
 	unsigned GetRows(void);
 	unsigned GetCols(void);
@@ -31,5 +35,6 @@ private:
 	unsigned numObstacles_;
 	bool diagonalObstacles_;
 
-	void MarkObstacle(Cell cell);
+	void MarkObstacle(Cell startCell);
+	void MarkCorners(Cell startCell);
 };

@@ -30,6 +30,7 @@ int main(int argc, char **argv)
 		if (transfer) {
 			g_map->ClearObstacleData();
 			g_map->IdentifyObstacles();
+			g_map->IdentifyCorners();
 			TransferGrid(rows, cols);
 		}
 		if (render) {
@@ -55,7 +56,13 @@ void TransferGrid(unsigned rows, unsigned cols)
 					, 50 * (data.obstacleGroupID % 25) / 5
 					, 50 * (data.obstacleGroupID % 125) / 25
 					, SDL_ALPHA_OPAQUE };
-				g_grid->SetCell(Grid::Cell{ r, c }, obstacleColor);
+				SDL_Color cornerColor = SDL_Color{ 255, 140, 0, SDL_ALPHA_OPAQUE };
+				if (data.corner) {
+					g_grid->SetCell(Grid::Cell{ r, c }, cornerColor);
+				}
+				else {
+					g_grid->SetCell(Grid::Cell{ r, c }, obstacleColor);
+				}
 				continue;
 			}
 			//TODO: colors for open cells
@@ -69,7 +76,7 @@ void EventHandler(bool *loop, bool *render, bool *transfer)
 	while (SDL_PollEvent(&event)) {
 		switch (event.type) {
 		case SDL_QUIT:
-			*loop = false; //TODO: close all windows here
+			*loop = false;
 			return;
 		case SDL_WINDOWEVENT:
 			switch (event.window.event) {
