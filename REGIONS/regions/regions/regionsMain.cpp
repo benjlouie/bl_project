@@ -8,6 +8,7 @@ void EventHandler_Mouse(SDL_Event *event, bool *loop, bool *render, bool *transf
 Grid *g_grid;
 RegionMap *g_map;
 bool g_colorToggle = true;
+Grid::Cell g_RmbPoint;
 
 int main(int argc, char **argv)
 {
@@ -90,6 +91,7 @@ void EventHandler(bool *loop, bool *render, bool *transfer)
 			}
 			break;
 		case SDL_MOUSEBUTTONDOWN:
+		case SDL_MOUSEBUTTONUP:
 		case SDL_MOUSEMOTION:
 			EventHandler_Mouse(&event, loop, render, transfer);
 			break;
@@ -137,7 +139,39 @@ void EventHandler_Mouse(SDL_Event *event, bool *loop, bool *render, bool *transf
 		*render = true;
 		break;
 	case SDL_BUTTON_RIGHT:
-	case SDL_BUTTON_X1: //TODO: find out why holding RMB outputs 4 to event
+		if (event->type == SDL_MOUSEBUTTONDOWN) {
+			if (curr.r == 255 && curr.g == 255 && curr.b == 255) {
+				g_colorToggle = true;
+			}
+			else {
+				g_colorToggle = false;
+			}
+			g_RmbPoint = cell;
+			g_grid->SetCell(cell, colorOn);
+		}
+		else if(event->type == SDL_MOUSEBUTTONUP) {
+			unsigned startRow = std::min(g_RmbPoint.row, cell.row);
+			unsigned startCol = std::min(g_RmbPoint.col, cell.col);
+			unsigned endRow = std::max(g_RmbPoint.row, cell.row);
+			unsigned endCol = std::max(g_RmbPoint.col, cell.col);
+			if (g_colorToggle) {
+				for (unsigned r = startRow; r <= endRow; r++) {
+					for (unsigned c = startCol; c <= endCol; c++) {
+						g_grid->SetCell(Grid::Cell{ r, c }, colorOn);
+						g_map->SetCell(RegionMap::Cell{ r, c }, false);
+					}
+				}
+			}
+			else {
+				for (unsigned r = startRow; r <= endRow; r++) {
+					for (unsigned c = startCol; c <= endCol; c++) {
+						g_grid->SetCell(Grid::Cell{ r, c }, colorOff);
+						g_map->SetCell(RegionMap::Cell{ r, c }, true);
+					}
+				}
+			}
+		}
+		/*
 		if (curr.r == 100 && curr.g == 255 && curr.b == 100) {
 			if (event->button.state == SDL_PRESSED) {
 				g_colorToggle = false;
@@ -154,6 +188,7 @@ void EventHandler_Mouse(SDL_Event *event, bool *loop, bool *render, bool *transf
 				g_grid->SetRow(cell.row, colorOn);
 			}
 		}
+		*/
 		*render = true;
 		break;
 	case SDL_BUTTON_MIDDLE:

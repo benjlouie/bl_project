@@ -72,8 +72,8 @@ void RegionMap::MarkObstacle(Cell startCell)
 			unsigned nextCol = curr.col + adjOffset[i][1];
 			CellData *nextCell;
 
-			//TODO: could probably simplify by not checking < 0 (because unsigned overflow)
-			if ((nextRow < 0 || nextRow >= rows_) || (nextCol < 0 || nextCol >= cols_)) {
+			//only check greater b/c of unsigned overflow
+			if (nextRow >= rows_ || nextCol >= cols_) {
 				continue;
 			}
 			nextCell = &map_[nextRow][nextCol];
@@ -125,7 +125,7 @@ void RegionMap::IdentifyCorners(void)
 void RegionMap::MarkCorners(Cell startCell)
 {
 	int adjOffset[8][2] = { { 0, 1 }, { 1, 1 }, { 1, 0 }, { 1, -1 }, { 0, -1 }, { -1, -1 }, { -1, 0 }, { -1, 1 } };
-	bool adjCellOpen[16];
+	bool adjCellOpen[11];
 	std::queue<Cell> connected;
 	std::unordered_map<std::string, bool> visited;
 	int obstacleId = map_[startCell.row][startCell.col].obstacleGroupID;
@@ -141,8 +141,8 @@ void RegionMap::MarkCorners(Cell startCell)
 			unsigned nextCol = curr.col + adjOffset[i][1];
 			CellData *nextCell;
 
-			//TODO: could probably simplify by not checking < 0 (because unsigned overflow)
-			if ((nextRow < 0 || nextRow >= rows_) || (nextCol < 0 || nextCol >= cols_)) {
+			//only check greater b/c of unsigned overflow
+			if (nextRow >= rows_ || nextCol >= cols_) {
 				continue;
 			}
 			nextCell = &map_[nextRow][nextCol];
@@ -151,7 +151,6 @@ void RegionMap::MarkCorners(Cell startCell)
 				continue; //cell not part of obstacle
 			}
 
-			//TODO: find out why it's not going through all cells in the obstacle
  			std::string nextCellKey = std::to_string(nextRow) + "," + std::to_string(nextCol);
 			if (visited.count(nextCellKey) == 0) { //not added yet
 				visited[nextCellKey] = true;
@@ -161,8 +160,8 @@ void RegionMap::MarkCorners(Cell startCell)
 
 		//check if corner
 		unsigned cornerCount = 0;
-		memcpy(adjCellOpen + 8, adjCellOpen, sizeof(bool) * 8); //create a "loop" to correctly check for corners
-		for (unsigned i = 0; i < 16; i++) {
+		memcpy(adjCellOpen + 8, adjCellOpen, sizeof(bool) * 3); //create a "loop" to correctly check for corners
+		for (unsigned i = 0; i < 11; i++) {
 			adjCellOpen[i] ? cornerCount++ : cornerCount = 0;
 			if (cornerCount >= 4) { // 4+ consecutive open cells around curr (corner?)
 				map_[curr.row][curr.col].corner = true;
