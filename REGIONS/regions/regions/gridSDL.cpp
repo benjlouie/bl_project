@@ -20,7 +20,7 @@ Grid::Grid(unsigned window_width, unsigned window_height, unsigned rows, unsigne
 	}
 	//TODO: add method for changing window name
 	window = SDL_CreateWindow("Grid"
-		, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED
+		, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED
 		, width, height
 		, SDL_WINDOW_RESIZABLE);
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);

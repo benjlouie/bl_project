@@ -2,11 +2,10 @@
 
 #define UNSET_OBSTACLE -1
 
-RegionMap::RegionMap(unsigned rows, unsigned cols, bool diagObstacles)
+RegionMap::RegionMap(unsigned rows, unsigned cols)
 {
 	rows_ = rows;
 	cols_ = cols;
-	diagonalObstacles_ = diagObstacles;
 	numObstacles_ = 0;
 
 	map_ = new CellData*[rows];
@@ -56,7 +55,8 @@ void RegionMap::IdentifyObstacles(void)
 // breadth first search to identify and mark (ID) an obstacle
 void RegionMap::MarkObstacle(Cell startCell)
 {
-	int adjOffset[8][2] = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 }, { 1, 1 }, { 1, -1 }, { -1, -1 }, { -1, 1 } };
+	int adjOffset[8][2] = { { 0, 1 }, { 1, 1 }, { 1, 0 }, { 1, -1 }, { 0, -1 }, { -1, -1 }, { -1, 0 }, { -1, 1 } };
+	bool adjCellOpen[12];
 	std::queue<Cell> visited;
 
 	map_[startCell.row][startCell.col].obstacleGroupID = numObstacles_;
@@ -65,23 +65,41 @@ void RegionMap::MarkObstacle(Cell startCell)
 		Cell curr = visited.front();
 		visited.pop();
 
-		unsigned numAdj;
-		diagonalObstacles_ ? numAdj = 8 : numAdj = 4;
+		memset(adjCellOpen, false, sizeof(bool) * 8); //reset array used in cornercount to zero
+
+		unsigned numAdj = 8;
 		for (unsigned i = 0; i < numAdj; i++) {
 			unsigned nextRow = curr.row + adjOffset[i][0];
 			unsigned nextCol = curr.col + adjOffset[i][1];
-			CellData *nextCell;
 
 			//only check greater b/c of unsigned overflow
 			if (nextRow >= rows_ || nextCol >= cols_) {
 				continue;
 			}
-			nextCell = &map_[nextRow][nextCol];
-			if (nextCell->open || nextCell->obstacleGroupID != UNSET_OBSTACLE) {
-				continue; //cell not part of obstacle or already ID'd
+
+			//check if cell not part of obstacle or already ID'd
+			CellData *nextCell = &map_[nextRow][nextCol];
+			if (nextCell->open) {
+				adjCellOpen[i] = true;
+				continue;
 			}
+			if (nextCell->obstacleGroupID != UNSET_OBSTACLE) {
+				continue;
+			}
+
 			nextCell->obstacleGroupID = numObstacles_;
 			visited.push(Cell{ nextRow, nextCol });
+		}
+
+		//check if corner
+		unsigned cornerCount = 0;
+		memcpy(adjCellOpen + 8, adjCellOpen, sizeof(bool) * 4); //create a "loop" to correctly check for corners
+		for (unsigned i = 0; i < 11; i++) { // 8 + 3 == 11, max rotation needed for 4+ open
+			adjCellOpen[i] ? cornerCount++ : cornerCount = 0;
+			if (cornerCount >= 4) { // 4+ consecutive open cells around curr (corner?)
+				map_[curr.row][curr.col].corner = true;
+				break;
+			}
 		}
 	}
 }
@@ -95,80 +113,6 @@ void RegionMap::ClearObstacleData(void)
 		}
 	}
 	numObstacles_ = 0;
-}
-
-void RegionMap::AllowDiagonalObstacles(bool diags)
-{
-	if (diags != diagonalObstacles_) {
-		diagonalObstacles_ = diags;
-		ClearObstacleData();
-	}
-}
-
-//need obstacles identified first
-void RegionMap::IdentifyCorners(void)
-{
-	int obstacleCount = 0; //should go in order, so don't have to keep hash of them
-
-	for (unsigned r = 0; r < rows_; r++) {
-		for (unsigned c = 0; c < cols_; c++) {
-			if (map_[r][c].open || map_[r][c].obstacleGroupID < obstacleCount) {
-				continue;
-			}
-
-			MarkCorners(Cell{ r, c });
-			obstacleCount++;
-		}
-	}
-}
-
-void RegionMap::MarkCorners(Cell startCell)
-{
-	int adjOffset[8][2] = { { 0, 1 }, { 1, 1 }, { 1, 0 }, { 1, -1 }, { 0, -1 }, { -1, -1 }, { -1, 0 }, { -1, 1 } };
-	bool adjCellOpen[11];
-	std::queue<Cell> connected;
-	std::unordered_map<std::string, bool> visited;
-	int obstacleId = map_[startCell.row][startCell.col].obstacleGroupID;
-		
-	connected.push(startCell);
-	while (connected.size() > 0) {
-		memset(adjCellOpen, false, sizeof(bool) * 8); //reset array used in cornercount to zero
-		Cell curr = connected.front();
-		connected.pop();
-
-		for (unsigned i = 0; i < 8; i++) {
-			unsigned nextRow = curr.row + adjOffset[i][0];
-			unsigned nextCol = curr.col + adjOffset[i][1];
-			CellData *nextCell;
-
-			//only check greater b/c of unsigned overflow
-			if (nextRow >= rows_ || nextCol >= cols_) {
-				continue;
-			}
-			nextCell = &map_[nextRow][nextCol];
-			if (nextCell->open || nextCell->obstacleGroupID != obstacleId) { //accounts for 4way adjacency
-				adjCellOpen[i] = true;
-				continue; //cell not part of obstacle
-			}
-
- 			std::string nextCellKey = std::to_string(nextRow) + "," + std::to_string(nextCol);
-			if (visited.count(nextCellKey) == 0) { //not added yet
-				visited[nextCellKey] = true;
-				connected.push(Cell{ nextRow, nextCol });
-			}
-		}
-
-		//check if corner
-		unsigned cornerCount = 0;
-		memcpy(adjCellOpen + 8, adjCellOpen, sizeof(bool) * 3); //create a "loop" to correctly check for corners
-		for (unsigned i = 0; i < 11; i++) {
-			adjCellOpen[i] ? cornerCount++ : cornerCount = 0;
-			if (cornerCount >= 4) { // 4+ consecutive open cells around curr (corner?)
-				map_[curr.row][curr.col].corner = true;
-				break;
-			}
-		}
-	}
 }
 
 RegionMap::CellData RegionMap::GetCellData(Cell cell)
