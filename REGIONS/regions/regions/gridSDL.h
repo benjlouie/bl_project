@@ -20,7 +20,12 @@ public:
 	SDL_Color GetCellColor(Cell cell);
 	Cell GetCellFromCoordinate(int xCoordinate, int yCoordinate);
 	void Render(void);
+	void RenderAll(void);
 	~Grid(void);
+
+	//TODO: remove debug func
+	void drawLine(Cell start, Cell end, SDL_Color color);
+	void Present(void);
 
 private:
 	SDL_Window *window;
@@ -39,7 +44,6 @@ private:
 	unsigned outlinePx;
 	SDL_Color background;
 
-	void RenderAll(void);
 	void RenderCell(Cell cell);
 	void RenderRow(unsigned row);
 	void RenderColumn(unsigned col);

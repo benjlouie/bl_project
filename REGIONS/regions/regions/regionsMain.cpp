@@ -5,10 +5,31 @@ void TransferGrid(unsigned rows, unsigned cols);
 void EventHandler(bool *loop, bool *render, bool *transfer);
 void EventHandler_Mouse(SDL_Event *event, bool *loop, bool *render, bool *transfer);
 
+
 Grid *g_grid;
 RegionMap *g_map;
 bool g_colorToggle = true;
 Grid::Cell g_RmbPoint;
+
+//TODO: remove debug function
+void LineDraw(unsigned rows, unsigned cols)
+{
+	for (unsigned r = 0; r < rows; r++) {
+		for (unsigned c = 0; c < cols; c++) {
+			RegionMap::Cell cell = RegionMap::Cell{ r, c };
+			RegionMap::CellData data = g_map->GetCellData(cell);
+			SDL_Color lineColor = SDL_Color{ 200, 140, 100, SDL_ALPHA_OPAQUE };
+			if (data.open) {
+				if (data.node) {
+					g_grid->drawLine(Grid::Cell{ cell.row, cell.col }
+					, Grid::Cell{ data.cornerCell.row, data.cornerCell.col }
+					, lineColor);
+				}
+			}
+		}
+	}
+}
+
 
 int main(int argc, char **argv)
 {
@@ -31,11 +52,24 @@ int main(int argc, char **argv)
 		if (transfer) {
 			g_map->ClearObstacleData();
 			g_map->IdentifyObstacles();
+			g_map->IdentifyNodes();
 			TransferGrid(rows, cols);
 		}
 		if (render) {
-			g_grid->Render();
+			if (transfer) {
+				//TODO: remove debug, only use renderAll for drawing lines
+				g_grid->RenderAll();
+			}
+			else {
+				g_grid->Render();
+			}
 		}
+		//TODO: remove debug if (for drawing lines only)
+		if (transfer) {
+			LineDraw(rows, cols);
+			g_grid->Present();
+		}
+
 		SDL_Delay(16); // ~60 updates per second
 	}
 
@@ -65,6 +99,18 @@ void TransferGrid(unsigned rows, unsigned cols)
 				}
 				continue;
 			}
+			else {
+				SDL_Color nodeColor = SDL_Color{ 0, 140, 255, SDL_ALPHA_OPAQUE };
+				SDL_Color emptyColor = SDL_Color{ 255, 255, 255, SDL_ALPHA_OPAQUE };
+				SDL_Color curr = g_grid->GetCellColor(Grid::Cell{ cell.row, cell.col });
+				if (data.node) {
+					g_grid->SetCell(Grid::Cell{ r, c }, nodeColor);
+				}
+				else if (curr.r != 255 || curr.g != 255 || curr.b != 255) {
+					g_grid->SetCell(Grid::Cell{ r, c }, emptyColor);
+				}
+			}
+
 			//TODO: colors for open cells
 		}
 	}
@@ -94,6 +140,7 @@ void EventHandler(bool *loop, bool *render, bool *transfer)
 		case SDL_MOUSEMOTION:
 			EventHandler_Mouse(&event, loop, render, transfer);
 			break;
+		//TODO: add keyboard event handler
 		}
 	}
 }

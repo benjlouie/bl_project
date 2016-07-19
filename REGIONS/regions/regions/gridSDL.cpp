@@ -161,6 +161,11 @@ void Grid::RenderAll(void)
 			SDL_RenderFillRect(renderer, &rect);
 		}
 	}
+
+	changedCells.clear();
+	changedRows.clear();
+	changedColumns.clear();
+	SDL_RenderPresent(renderer);
 }
 
 void Grid::RenderCell(Cell cell)
@@ -229,4 +234,25 @@ Grid::~Grid(void)
 		delete[] grid[r];
 	}
 	delete[] grid;
+}
+
+
+
+
+
+//TODO: delete debug funcs
+void Grid::drawLine(Cell start, Cell end, SDL_Color color)
+{
+	int x1, x2, y1, y2;
+	x1 = start.col * (rectWidth + outlinePx) + rectWidth / 2;
+	x2 = end.col * (rectWidth + outlinePx) + rectWidth / 2;
+	y1 = start.row * (rectHeight + outlinePx) + rectHeight / 2;
+	y2 = end.row * (rectHeight + outlinePx) + rectHeight / 2;
+
+	SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
+	SDL_RenderDrawLine(renderer, x1, y1, x2, y2);
+}
+void Grid::Present(void)
+{
+	SDL_RenderPresent(renderer);
 }
