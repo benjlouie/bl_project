@@ -18,7 +18,7 @@ void LineDraw(unsigned rows, unsigned cols)
 		for (unsigned c = 0; c < cols; c++) {
 			RegionMap::Cell cell = RegionMap::Cell{ r, c };
 			RegionMap::CellData data = g_map->GetCellData(cell);
-			SDL_Color lineColor = SDL_Color{ 200, 140, 100, SDL_ALPHA_OPAQUE };
+			SDL_Color lineColor = SDL_Color{ 100, 50, 200, SDL_ALPHA_OPAQUE };
 			if (data.open) {
 				if (data.node) {
 					g_grid->drawLine(Grid::Cell{ cell.row, cell.col }
@@ -33,15 +33,13 @@ void LineDraw(unsigned rows, unsigned cols)
 
 int main(int argc, char **argv)
 {
-	unsigned sideLength = 10;
+	unsigned sideLength = 12;
 	unsigned rows = 70;
 	unsigned cols = 70;
 
 	g_grid = new Grid(sideLength * cols, sideLength * rows, rows, cols, 1);
 	g_map = new RegionMap(rows, cols);
 
-	g_map->IdentifyObstacles();
-	TransferGrid(rows, cols);
 	g_grid->Render();
 
 	bool loop = true;
@@ -53,6 +51,8 @@ int main(int argc, char **argv)
 			g_map->ClearObstacleData();
 			g_map->IdentifyObstacles();
 			g_map->IdentifyNodes();
+			g_map->SanitizeNodeData();
+			g_map->IdentifyRegions();
 			TransferGrid(rows, cols);
 		}
 		if (render) {
@@ -101,17 +101,19 @@ void TransferGrid(unsigned rows, unsigned cols)
 			}
 			else {
 				SDL_Color nodeColor = SDL_Color{ 0, 140, 255, SDL_ALPHA_OPAQUE };
+				SDL_Color regionColor = SDL_Color{ 200, 200, 200, SDL_ALPHA_OPAQUE };
 				SDL_Color emptyColor = SDL_Color{ 255, 255, 255, SDL_ALPHA_OPAQUE };
 				SDL_Color curr = g_grid->GetCellColor(Grid::Cell{ cell.row, cell.col });
 				if (data.node) {
 					g_grid->SetCell(Grid::Cell{ r, c }, nodeColor);
 				}
+				else if (data.regionID == -1) {//TODO: make better way of checking if it's a region
+					g_grid->SetCell(Grid::Cell{ r, c }, regionColor);
+				}
 				else if (curr.r != 255 || curr.g != 255 || curr.b != 255) {
 					g_grid->SetCell(Grid::Cell{ r, c }, emptyColor);
 				}
 			}
-
-			//TODO: colors for open cells
 		}
 	}
 }

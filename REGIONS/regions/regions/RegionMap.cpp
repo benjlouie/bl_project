@@ -2,6 +2,7 @@
 
 #define UNSET_OBSTACLE -1
 #define UNSET_CORNER -1
+#define UNSET_REGION -1
 
 RegionMap::RegionMap(unsigned rows, unsigned cols)
 {
@@ -9,6 +10,7 @@ RegionMap::RegionMap(unsigned rows, unsigned cols)
 	cols_ = cols;
 	numObstacles_ = 0;
 	numCorners_ = 0;
+	numRegions_ = 0;
 
 	map_ = new CellData*[rows];
 	for (unsigned x = 0; x < rows_; x++) {
@@ -16,9 +18,9 @@ RegionMap::RegionMap(unsigned rows, unsigned cols)
 		for (unsigned y = 0; y < cols_; y++) {
 			//TODO: make sure struct fill here is correct
 			map_[x][y] = CellData{ true
-				, UNSET_OBSTACLE, UNSET_CORNER
+				, UNSET_OBSTACLE, UNSET_CORNER, UNSET_REGION
 				, Cell{ -1, -1 }, Cell{ -1, -1 }
-				, false, false
+				, false, false, false
 				, nullptr };
 		}
 	}
@@ -114,11 +116,16 @@ void RegionMap::MarkObstacle(Cell startCell)
 	}
 }
 
-//TODO: don't look diagonally
+//TODO: look diagonal, not between two walls
+//TODO: go through adjOffset randomly (or differently) each time
+//TODO: find way to get good nodes from edge (-1 connects) nodes (maybe go halfway between corner and node?)
 //breadth first search from every corner, find node positions and identify region separators
 void RegionMap::IdentifyNodes(void)
 {
-	int adjOffset[8][2] = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } };
+	//TODO: find out if 4 or 8 adjcency is better
+	//TODO: find optimal adj pattern (star, circular, etc)
+	//int adjOffset[8][2] = { { 0, 1 }, { 0, -1 }, { 1, 0 }, { -1, 0 } };
+	int adjOffset[8][2] = { { 0, 1 }, { 0, -1 }, { -1, 0 }, { 1, 0 }, { 1, 1 }, { -1, -1 }, { 1, -1 }, { -1, 1 } };
 	std::queue<Cell> visited;
 
 	//start queue with all the corners
@@ -127,6 +134,7 @@ void RegionMap::IdentifyNodes(void)
 		int cornerId = map_[cell.row][cell.col].cornerID;
 		//cornerConnects_[cornerId]; //add all corner IDs to the map
 	}
+	//cornerConnects_[-1]; //set out of bounds as a "corner"
 
 	while (visited.size() > 0) {
 		Cell curr = visited.front();
@@ -134,12 +142,18 @@ void RegionMap::IdentifyNodes(void)
 		int currCornerId = map_[curr.row][curr.col].cornerID;
 		bool isNode = false;
 
-		for (int i = 0; i < 4; i++) {
+		for (int i = 0; i < 8; i++) {
 			unsigned nextRow = curr.row + adjOffset[i][0];
 			unsigned nextCol = curr.col + adjOffset[i][1];
 
-			//only check greater b/c of unsigned overflow
 			if (nextRow >= rows_ || nextCol >= cols_) {
+				//out of bounds, use -1 for this "corner"
+				if (cornerConnects_[currCornerId].count(-1) == 0) {
+					cornerConnects_[currCornerId].insert(-1);
+					//cornerConnects_[-1].insert(currCornerId);
+					map_[curr.row][curr.col].node = true;
+					nodeCells_.push_back(curr);
+				}
 				continue;
 			}
 
@@ -187,12 +201,87 @@ void RegionMap::IdentifyNodes(void)
 				nodeCells_.push_back(curr);
 			}
 		}
-
-		//expand out, set prevCell and cornerID
-		//once different cornerID is hit, set that as a node (find way to make that node connected to both corner Id's, so it can backtrack properly)
-		//add that to a node list
 	}
-	
+}
+
+//follow node paths back and set those paths
+//remove corner/node data from all other cells
+void RegionMap::SanitizeNodeData(void)
+{
+	//follow node paths
+	for (Cell node : nodeCells_) {
+		CellData *curr = &map_[node.row][node.col];
+		while (curr->prevCell != Cell{ -1, -1 }) {
+			curr->nodePath = true;
+			Cell prev = curr->prevCell;
+			curr = &map_[prev.row][prev.col];
+		}
+	}
+
+	//clear node data from other cells
+	for (unsigned r = 0; r < rows_; r++) {
+		for (unsigned c = 0; c < cols_; c++) {
+			CellData *data = &map_[r][c];
+			if (!data->open || data->nodePath) {
+				continue;
+			}
+
+			data->prevCell = Cell{ -1, -1 };
+			data->cornerCell = Cell{ -1, -1 };
+			data->cornerID = UNSET_CORNER;
+		}
+	}
+}
+
+void RegionMap::IdentifyRegions(void)
+{
+	//loop through each cell
+	for (unsigned r = 0; r < rows_; r++) {
+		for (unsigned c = 0; c < cols_; c++) {
+			CellData &data = map_[r][c];
+			if (!data.open 
+				|| data.nodePath
+				|| data.regionID != UNSET_REGION) {
+				continue;
+			}
+
+			//search out and identify that region
+			MarkRegion(Cell{ r, c });
+			numRegions_++;
+		}
+	}
+}
+
+//TODO: make the adj 8 directions, don't allow diags that go between walls
+void RegionMap::MarkRegion(Cell startCell)
+{
+	int adjOffset[4][2] = { { 0, 1 }, { 0, -1 }, { 1, 0 }, { -1, 0 } };
+	std::queue<Cell> visited;
+
+	map_[startCell.row][startCell.col].regionID = numRegions_;
+	visited.push(startCell);
+	while (visited.size() > 0) {
+		Cell curr = visited.front();
+		visited.pop();
+
+		for (unsigned i = 0; i < 4; i++) {
+			unsigned nextRow = curr.row + adjOffset[i][0];
+			unsigned nextCol = curr.col + adjOffset[i][1];
+
+			//only check greater b/c of unsigned overflow
+			if (nextRow >= rows_ || nextCol >= cols_) {
+				continue;
+			}
+
+			CellData &nextCell = map_[nextRow][nextCol];
+			if (!nextCell.open || nextCell.nodePath || nextCell.regionID != UNSET_REGION) {
+				continue;
+			}
+
+			nextCell.regionID = numRegions_;
+			visited.push(Cell{ nextRow, nextCol });
+		}
+	}
 }
 
 void RegionMap::ClearObstacleData(void)
@@ -202,9 +291,12 @@ void RegionMap::ClearObstacleData(void)
 		for (unsigned c = 0; c < cols_; c++) {
 			map_[r][c].obstacleGroupID = UNSET_OBSTACLE;
 			map_[r][c].cornerID = UNSET_CORNER;
+			map_[r][c].regionID = UNSET_REGION;
 			map_[r][c].prevCell = Cell{ -1, -1 };
+			map_[r][c].cornerCell = Cell{ -1, -1 };
 			map_[r][c].corner = false;
 			map_[r][c].node = false;
+			map_[r][c].nodePath = false;
 		}
 	}
 	numObstacles_ = 0;
