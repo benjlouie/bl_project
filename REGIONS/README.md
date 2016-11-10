@@ -31,4 +31,6 @@ Middle Mouse Button
 --Run algorithm
 ```
 
+![alt tag](example.png)
+
 Unfinished, but functional.
